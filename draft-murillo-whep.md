@@ -447,6 +447,7 @@ In order to reduce the complexity of implementing WHEP in both clients and Media
 
 Both the WHEP player and the WHEP endpoint SHALL use SDP bundle {{!RFC8843}}. Each "m=" section MUST be part of a single BUNDLE group. Hence, when a WHEP player sends an SDP offer, it MUST include a "bundle-only" attribute in each bundled "m=" section. The WHEP player and the Media Server MUST support multiplexed media associated with the BUNDLE group as per {{!RFC8843}} section 9. In addition, per {{!RFC8843}} the WHEP player and Media Server will use RTP/RTCP multiplexing for all bundled media.  The WHEP player and Media Server SHOULD include the "rtcp-mux-only" attribute in each bundled "m=" sections.
 
+As the codecs for a given stream may not be known by the Media Server when the WHEP player starts watching an stream, if the WHEP endpoint is acting as SDP answerer, it MUST include all the offered codecs that it supports in the SDP answer and not make any assumption about which will be the codec that will be actually sent.
 
 Tricke ICE and ICE restarts support is OPTIONAL for both the WHEP players and Media Servers as explained in section 4.1.
 
