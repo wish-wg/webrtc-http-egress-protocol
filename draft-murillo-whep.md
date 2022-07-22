@@ -73,7 +73,7 @@ Once the ICE/DTLS session is set up, the media will flow unidirectionally from M
 {: title="WHEP session setup and teardown"}
 
 
-Alternatively, there are cases in which the WHEP player may wish the service to provide the SDP offer (for example to avoid seting up an audio and video session when only audio is supported), so in this case the initial HTTP POST request will not contain a body and the response will contain the SDP offer from instead. The WHEP player will have to provide the SDP answer in a subsequent HTTP PATCH request to the WHEP resource.
+Alternatively, there are cases in which the WHEP player may wish the service to provide the SDP offer (for example to avoid seting up an audio and video session when only audio is supported), so in this case the initial HTTP POST request will not contain a body and the response will contain the SDP offer from the service instead. The WHEP player will have to provide the SDP answer in a subsequent HTTP PATCH request to the WHEP resource.
 ~~~~~
                                                                                
  +-------------+    +---------------+ +--------------+ +---------------+
