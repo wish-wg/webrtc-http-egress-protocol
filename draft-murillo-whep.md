@@ -20,7 +20,7 @@ author:
 
 --- abstract
 
-This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch conetnet from streaming services and/or CDNs.
+This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services and/or CDNs.
 
 --- middle
 
@@ -31,17 +31,17 @@ This document describes a simple HTTP-based protocol that will allow WebRTC-base
 
 {::boilerplate bcp14-tagged}
 
-- WHEP player: WebRTC media player that acts as a client of the WHEP protocol by encoding and delivering the media to a remote Media Server.
+- WHEP player: WebRTC media player that acts as a client of the WHEP protocol by receiving and decoding the media from a remote Media Server.
 - WHEP endpoint: Egress server receiving the initial WHEP request.
 - WHEP endpoint URL: URL of the WHEP endpoint that will create the WHEP resource.
 - Media Server: WebRTC Media Server or consumer that establishes the media session with the WHEP player and delivers the media to it.
-- WHEP resource: Allocated resource by the WHEP endpoint for an ongoing ingest session that the WHEP player can send requests for altering the session (ICE operations or termination, for example).
+- WHEP resource: Allocated resource by the WHEP endpoint for an ongoing egress session that the WHEP player can send requests for altering the session (ICE operations or termination, for example).
 - WHEP resource URL: URL allocated to a specific media session by the WHEP endpoint which can be used to perform operations such as terminating the session or ICE restarts.
 
 
 # Overview
 
-The WebRTC-HTTP Ingest Protocol (WHEP) uses an HTTP POST request to perform a single-shot SDP offer/answer so an ICE/DTLS session can be established between the WHEP player and the streaming service endpoint (Media Server).
+The WebRTC-HTTP Egress Protocol (WHEP) uses an HTTP POST request to perform a single-shot SDP offer/answer so an ICE/DTLS session can be established between the WHEP player and the streaming service endpoint (Media Server).
 
 Once the ICE/DTLS session is set up, the media will flow unidirectionally from Media Server to the WHEP player. In order to reduce complexity, no SDP renegotiation is supported, so no tracks or streams can be added or removed once the initial SDP offer/answer over HTTP is completed.
 
@@ -74,7 +74,7 @@ Once the ICE/DTLS session is set up, the media will flow unidirectionally from M
 
 # Protocol Operation
 
-In order to setup an ingestion session, the WHEP player will generate an SDP offer according to the JSEP rules and perform an HTTP POST request to the configured WHEP endpoint URL.
+In order to setup a streaming session, the WHEP player will generate an SDP offer according to the JSEP rules and perform an HTTP POST request to the configured WHEP endpoint URL.
 
 The HTTP POST request will have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint will generate an SDP answer and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created resource.
 
@@ -271,7 +271,7 @@ In case of unstable network conditions, the ICE restart HTTP PATCH requests and 
 
 ## WebRTC constraints
 
-In the specific case of media ingestion into a streaming service, some assumptions can be made about the server-side which simplifies the WebRTC compliance burden, as detailed in WebRTC-gateway document {{?draft-ietf-rtcweb-gateways}}.
+In the specific case of media consumption from a streaming service, some assumptions can be made about the server-side which simplifies the WebRTC compliance burden, as detailed in WebRTC-gateway document {{?draft-ietf-rtcweb-gateways}}.
 
 In order to reduce the complexity of implementing WHEP in both clients and Media Servers, WHEP imposes the following restrictions regarding WebRTC usage:
 
