@@ -1,6 +1,6 @@
 ---
 docname: draft-murillo-whep-00
-title: WebRTC-HTTP egress protocol (WHEP)
+title: WebRTC-HTTP Egress Protocol (WHEP)
 abbrev: whep
 category: info
 
