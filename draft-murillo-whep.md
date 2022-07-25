@@ -62,7 +62,7 @@ There are many situation in which the lack of a standard protocol for consuming 
 - Integration with Dynamic Adaptive Streaming over HTTP (DASH) for offering live streams via WebRTC while offering a time-shifted version via DASH.
 - Playing WebRTC streams in devices that doesn't support custom javascript to be run (like TVs).
 
-This document mimics what has been done  the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
+This document mimics what has been done  the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-ietf-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
 
 # Terminology
 
@@ -111,6 +111,7 @@ Once the ICE/DTLS session is set up, the media will flow unidirectionally from M
 
 
 Alternatively, there are cases in which the WHEP Player may wish the service to provide the SDP offer (for example to avoid setting up an audio and video session when only audio is supported), so in this case the initial HTTP POST request will not contain a body and the response will contain the SDP offer from the service instead. The WHEP Player will have to provide the SDP answer in a subsequent HTTP PATCH request to the WHEP resource.
+
 ~~~~~
                                                                                
  +-------------+    +---------------+ +--------------+ +---------------+
@@ -388,11 +389,11 @@ ETag: "38sdf4fdsf54:EsAw"
 If the WHEP Resource does not receive an HTTP PATCH request before the time indicated in the Expire header HTTP POST response, it SHOULD delete the resource and respond with a 404 Not Found response to any request on the WHEP Resource URL received afterwards.
 
 
-
 ## Common procedures
 
-The WHEP Resource MAY NOT accept start viewing a stream if there is no live publish happening, in that case it SHALL return a 409 Conflict response to the POST request issued by the WHEP Client with a Retry-After header indicating the number of seconds before sending a new request. WHEP Players MAY periodically try to connect to the 
-WHEP Resource with exponential backoff period with an initial value of the Retry-After header value in the 409 Conflict response.
+The WHEP Resource COULD require a live publishing to be happening in order to allow a WHEP Players to start viewing a stream.
+In that case, the WHEP Resource SHALL return a 409 Conflict response to the POST request issued by the WHEP Client with a Retry-After header indicating the number of seconds before sending a new request.
+WHEP Players MAY periodically try to connect to the WHEP Resource with exponential backoff period with an initial value of the Retry-After header value in the 409 Conflict response.
 
 Once a session is set up, ICE consent freshness {{!RFC7675}} will be used to detect abrupt disconnection and DTLS teardown for session termination by either side.
 
@@ -479,7 +480,7 @@ In case of unstable network conditions, the ICE restart HTTP PATCH requests and 
 
 ## WebRTC constraints
 
-In the specific case of media consumption from a streaming service, some assumptions can be made about the server-side which simplifies the WebRTC compliance burden, as detailed in WebRTC-gateway document {{?draft-ietf-rtcweb-gateways}}.
+In the specific case of media consumption from a streaming service, some assumptions can be made about the server-side which simplifies the WebRTC compliance burden, as detailed in WebRTC-gateway document {{?I-D.draft-ietf-rtcweb-gateways}}.
 
 In order to reduce the complexity of implementing WHEP in both players and Media Servers, WHEP imposes the following restrictions regarding WebRTC usage:
 
@@ -499,7 +500,7 @@ In case of high load, the WHEP endpoints MAY return a 503 (Service Unavailable) 
 
 The WHEP Endpoint MAY return STUN/TURN server configuration URLs and credentials usable by the client in the "201 Created" response to the HTTP POST request to the WHEP Endpoint URL.
 
-Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server" as specified in {{I-D.draft-whish-whip}}
+Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server" as specified in {{I-D.draft-ietf-wish-whip}}
 
 It might be also possible to configure the STUN/TURN server URLs with long-term credentials provided by either the broadcasting service or an external TURN provider on the WHEP Player, overriding the values provided by the WHEP Endpoint.
 
