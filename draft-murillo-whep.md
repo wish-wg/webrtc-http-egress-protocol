@@ -33,34 +33,19 @@ This document describes a simple HTTP-based protocol that will allow WebRTC-base
 
 # Introduction
 
-The IETF RTCWEB working group standardized JSEP ([RFC8829]), a
-mechanism used to control the setup, management, and teardown of a
-multimedia session.  It also describes how to negotiate media flows
-using the Offer/Answer Model with the Session Description Protocol
-(SDP) [RFC3264] as well as the formats for data sent over the wire
-(e.g., media types, codec parameters, and encryption).  WebRTC
-intentionally does not specify a signaling transport protocol at
-application level.  This flexibility has allowed the implementation
-of a wide range of services.  However, those services are typically
-standalone silos which don't require interoperability with other
-services or leverage the existence of tools that can communicate with
-them.
+The IETF RTCWEB working group standardized JSEP ({{!RFC8829}}), a mechanism used to control the setup, management, and teardown of a multimedia session. It also describes how to negotiate media flows using the Offer/Answer Model with the Session Description Protocol (SDP) {{!RFC3264}} as well as the formats for data sent over the wire (e.g., media types, codec parameters, and encryption). WebRTC intentionally does not specify a signaling transport protocol at application level. This flexibility has allowed the implementation of a wide range of services. However, those services are typically standalone silos which don't require interoperability with other services or leverage the existence of tools that can communicate with them.
 
-While some standard signaling protocols are available that can be
-integrated with WebRTC, like SIP [RFC3261] or XMPP [RFC6120], they
-are not designed to be used in broadcasting/streaming services, and
-there also is no sign of adoption in that industry.  RTSP [RFC7826],
-which is based on RTP and may be the closest in terms of features to
-WebRTC, is not compatible with the SDP offer/answer model [RFC3264].
+While some standard signaling protocols are available that can be integrated with WebRTC, like SIP {{?RFC3261}} or XMPP {{?RFC6120}}, they are not designed to be used in broadcasting/streaming services, and there also is no sign of adoption in that industry. RTSP {{?RFC7826}}, which is based on RTP and may be the closest in terms of features to WebRTC, is not compatible with the SDP offer/answer model {{!RFC3264}}.
 
 So, currently, there is no standard protocol designed for consuming media from streaming service using WebRTC.
 
-There are many situation in which the lack of a standard protocol for consuming media from streaming service using WebRTC has become a problem:
+
+There are many situations in which the lack of a standard protocol for consuming media from streaming service using WebRTC has become a problem:
   
-- Interoperability between WebRTC services and product.
+- Interoperability between WebRTC services and products.
 - Reusing player software which can be integrated easily.
 - Integration with Dynamic Adaptive Streaming over HTTP (DASH) for offering live streams via WebRTC while offering a time-shifted version via DASH.
-- Playing WebRTC streams in devices that doesn't support custom javascript to be run (like TVs).
+- Playing WebRTC streams on devices that don't support custom javascript to be run (like TVs).
 
 This document mimics what has been done  the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-ietf-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
 
@@ -418,9 +403,9 @@ The WHEP Player MUST NOT send any ICE trickle or restart until the SDP O/A is co
 Trickle ICE and ICE restart support is OPTIONAL for a WHEP resource. If both Trickle ICE or ICE restarts are not supported by the WHEP resource, it MUST return a 405 Method Not Allowed response for any HTTP PATCH request. If the WHEP resource supports either Trickle ICE or ICE restarts, but not both, it MUST return a 501 Not Implemented for the HTTP PATCH requests that are not supported.
 
 As the HTTP PATCH request sent by a WHEP player may be received out-of-order by the WHEP Resource, the WHEP Resource MUST generate a
-unique strong entity-tag identifying the ICE session as per {{!RFC7232}} section 2.3. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the 201 response to the initial POST request to the WHEP Endpoint if the WHEP player is acting as SDP offerer, or in the HTTP PATCH response containing the SDP answer otherwise. It MUST also be returned in the 200 OK of any PATCH request that triggers an ICE restart.
+unique strong entity-tag identifying the ICE session as per {{!RFC9110}} section 2.3. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the 201 response to the initial POST request to the WHEP Endpoint if the WHEP player is acting as SDP offerer, or in the HTTP PATCH response containing the SDP answer otherwise. It MUST also be returned in the 200 OK of any PATCH request that triggers an ICE restart.
 
-A WHEP Player sending a PATCH request for performing trickle ICE MUST include an "If-Match" header field with the latest known entity-tag as per {{!RFC7232}} section 3.1. When the PATCH request is received by the WHEP resource, it MUST compare the indicated entity-tag value with the current entity-tag of the resource as per {{!RFC7232}} section 3.1 and return a "412 Precondition Failed" response if they do not match. 
+A WHEP Player sending a PATCH request for performing trickle ICE MUST include an "If-Match" header field with the latest known entity-tag as per {{!RFC9110}} section 3.1. When the PATCH request is received by the WHEP resource, it MUST compare the indicated entity-tag value with the current entity-tag of the resource as per {{!RFC9110}} section 3.1 and return a "412 Precondition Failed" response if they do not match. 
 
 WHEP Players SHOULD NOT use entity-tag validation when matching a specific ICE session is not required, such as when initiating a DELETE request to terminate a session.
 
@@ -447,7 +432,7 @@ HTTP/1.1 204 No Content
 ~~~~~
 {: title="Trickle ICE request"}
 
-A WHEP Player sending a PATCH request for performing ICE restart MUST contain an "If-Match" header field with a field-value "*" as per {{!RFC7232}} section 3.1. 
+A WHEP Player sending a PATCH request for performing ICE restart MUST contain an "If-Match" header field with a field-value "*" as per {{!RFC9110}} section 3.1. 
 
 If the HTTP PATCH request results in an ICE restart, the WHEP resource SHALL return a "200 OK" with an "application/trickle-ice-sdpfrag" body containing the new ICE username fragment and password. The response may optionally contain the new set of ICE candidates for the Media Server and the new entity-tag correspond to the new ICE session in an ETag response header field.
 
@@ -484,7 +469,7 @@ In the specific case of media consumption from a streaming service, some assumpt
 
 In order to reduce the complexity of implementing WHEP in both players and Media Servers, WHEP imposes the following restrictions regarding WebRTC usage:
 
-Both the WHEP Player and the WHEP Endpoint SHALL use SDP bundle {{!RFC8843}}. Each "m=" section MUST be part of a single BUNDLE group. Hence, when a WHEP Player or a  WHEP Endpoints sends an SDP offer, it MUST include a "bundle-only" attribute in each bundled "m=" section. The WHEP player and the Media Server MUST support multiplexed media associated with the BUNDLE group as per {{!RFC8843}} section 9. In addition, per {{!RFC8843}} the WHEP Player and Media Server will use RTP/RTCP multiplexing for all bundled media. The WHEP Player and Media Server SHOULD include the "rtcp-mux-only" attribute in each bundled "m=" section.
+Both the WHEP Player and the WHEP Endpoint SHALL use SDP bundle {{!RFC9143}}. Each "m=" section MUST be part of a single BUNDLE group. Hence, when a WHEP Player or a  WHEP Endpoints sends an SDP offer, it MUST include a "bundle-only" attribute in each bundled "m=" section. The WHEP player and the Media Server MUST support multiplexed media associated with the BUNDLE group as per {{!RFC9143}} section 9. In addition, per {{!RFC9143}} the WHEP Player and Media Server will use RTP/RTCP multiplexing for all bundled media. The WHEP Player and Media Server SHOULD include the "rtcp-mux-only" attribute in each bundled "m=" section.
 
 As the codecs for a given stream may not be known by the Media Server when the WHEP Player starts watching a stream, if the WHEP Endpoint is acting as SDP answerer, it MUST include all the offered codecs that it supports in the SDP answer and not make any assumption about which will be the codec that will be actually sent.
 
@@ -492,7 +477,7 @@ Trickle ICE and ICE restarts support is OPTIONAL for both the WHEP Players and M
 
 ## Load balancing and redirections
 
-WHEP Endpoints and Media Servers might not be co-located on the same server, so it is possible to load balance incoming requests to different Media Servers. WHEP Players SHALL support HTTP redirection via the "307 Temporary Redirect response code" as described in {{!RFC7231}} section 6.4.7. The WHEP Resource URL MUST be a final one, and redirections are not required to be supported for the PATCH and DELETE requests sent to it.
+WHEP Endpoints and Media Servers might not be co-located on the same server, so it is possible to load balance incoming requests to different Media Servers. WHEP Players SHALL support HTTP redirection via the "307 Temporary Redirect response code" as described in {{!RFC9110}} section 6.4.7. The WHEP Resource URL MUST be a final one, and redirections are not required to be supported for the PATCH and DELETE requests sent to it.
 
 In case of high load, the WHEP endpoints MAY return a 503 (Service Unavailable) status code indicating that the server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. The WHEP Endpoint might send a Retry-After header field indicating the minimum time that the user agent ought to wait before making a follow-up request.
 
