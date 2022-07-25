@@ -27,7 +27,7 @@ author:
 
 --- abstract
 
-This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services and/or CDNs(Content Delivery Network)/WTNs(WebRTC Transmission Network).
+This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services and/or Content Delivery Networks (CDNs) or WebRTC Transmission Network (WTNs).
 
 --- middle
 
