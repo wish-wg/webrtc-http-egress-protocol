@@ -33,6 +33,36 @@ This document describes a simple HTTP-based protocol that will allow WebRTC-base
 
 # Introduction
 
+The IETF RTCWEB working group standardized JSEP ([RFC8829]), a
+mechanism used to control the setup, management, and teardown of a
+multimedia session.  It also describes how to negotiate media flows
+using the Offer/Answer Model with the Session Description Protocol
+(SDP) [RFC3264] as well as the formats for data sent over the wire
+(e.g., media types, codec parameters, and encryption).  WebRTC
+intentionally does not specify a signaling transport protocol at
+application level.  This flexibility has allowed the implementation
+of a wide range of services.  However, those services are typically
+standalone silos which don't require interoperability with other
+services or leverage the existence of tools that can communicate with
+them.
+
+While some standard signaling protocols are available that can be
+integrated with WebRTC, like SIP [RFC3261] or XMPP [RFC6120], they
+are not designed to be used in broadcasting/streaming services, and
+there also is no sign of adoption in that industry.  RTSP [RFC7826],
+which is based on RTP and may be the closest in terms of features to
+WebRTC, is not compatible with the SDP offer/answer model [RFC3264].
+
+So, currently, there is no standard protocol designed for consuming media from streaming service using WebRTC.
+
+There are many situation in which the lack of a standard protocol for consuming media from streaming service using WebRTC has become a problem:
+  
+- Interoperability between WebRTC services and product.
+- Reusing player software which can be integrated easily.
+- Integration with Dynamic Adaptive Streaming over HTTP (DASH) for offering live streams via WebRTC while offering a time-shifted version via DASH.
+- Playing WebRTC streams in devices that doesn't support custom javascript to be run (like TVs).
+
+This document mimics what has been done  the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
 
 # Terminology
 
