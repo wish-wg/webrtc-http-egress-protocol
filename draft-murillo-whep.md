@@ -190,7 +190,7 @@ a=setup:passive
 a=mid:0
 a=bundle-only
 a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
-a=recvonly
+a=sendonly
 a=rtcp-mux
 a=rtcp-rsize
 a=rtpmap:111 opus/48000/2
@@ -228,7 +228,7 @@ If the WHEP player preffers the WHEP Endpoint to generate the SDP offer, the WHE
 
 The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. 
 
-The WHEP endpoint will generate an SDP offer SDP offer according to the JSEP rules and return a "201 Created" response with a content type of "application/sdp", the SDP offer as the body, a Location header field pointing to the newly created resource and a Expire header indicating the maximum time that the WHEP player is allowed to send the SDP answer to the WHIP resource.
+The WHEP endpoint will generate an SDP offer according to the JSEP rules and return a "201 Created" response with a content type of "application/sdp", the SDP offer as the body, a Location header field pointing to the newly created resource and a Expire header indicating the maximum time that the WHEP player is allowed to send the SDP answer to the WHIP resource.
 
 The WHEP player MUST generate an SDP answer to SDP offer provided by the WHEP enpoint and send an HTTP PATCH request to the URL provided in the Location header for the WHIP resource. The HTTP PATCH request will have a content type of "application/sdp" and contain the SDP answer as the body. If the SDP offer is not accepted by the WHEP player, it MUST perform an HTTP DELETE operation for terminating the session to the WHERP resource URL.
 
