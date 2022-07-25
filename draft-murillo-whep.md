@@ -361,6 +361,9 @@ If the WHEP Resource does not receive an HTTP PATCH request before the time indi
 
 ## Common procedures
 
+The WHEP Resource MAY NOT accept start viewing a stream if there is no live publish happening, in that case it SHALL return a 409 Conflict response to the POST request issued by the WHEP Client with a Retry-After header indicating the number of seconds before sending a new request. WHEP Players MAY periodically try to connect to the 
+WHEP Resource with exponential backoff period with an initial value of the Retry-After header value in the 409 Conflict response.
+
 Once a session is set up, ICE consent freshness {{!RFC7675}} will be used to detect abrupt disconnection and DTLS teardown for session termination by either side.
 
 To explicitly terminate a session, the WHEP Player MUST perform an HTTP DELETE request to the resource URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHEP resource will be removed and the resources freed on the Media Server, terminating the ICE and DTLS sessions.
