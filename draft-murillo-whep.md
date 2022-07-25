@@ -12,6 +12,7 @@ stand_alone: yes
 pi: [toc, sortrefs, symrefs]
 
 author:
+
  -
     ins: S. Murillo
     name: Sergio Garcia Murillo
