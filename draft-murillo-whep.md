@@ -375,7 +375,7 @@ The WHEP resources MUST return an HTTP 405 response for any HTTP GET, HEAD, POST
 
 The SDP provided by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, or it MAY only contain local candidates (or even an empty list of candidates).
 
-In order to simplify the protocol, there is no support for exchanging gathered trickle candidates from Media Server ICE candidates once the SDP answer is sent. The  WHEP Endpoint SHALL gather all the ICE candidates for the Media Server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the Media Server. The Media Server MAY use ICE lite, while the WHEP player MUST implement full ICE.
+In order to simplify the protocol, there is no support for exchanging gathered trickle candidates from Media Server ICE candidates once the SDP answer is sent. The WHEP Endpoint SHALL gather all the ICE candidates for the Media Server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the Media Server. The Media Server MAY use ICE lite, while the WHEP player MUST implement full ICE.
 
 The WHEP player MAY perform trickle ICE or ICE restarts {{!RFC8863}} by sending an HTTP PATCH request to the WHEP resource URL with a body containing a SDP fragment with MIME type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}}. When used for trickle ICE, the body of this PATCH message will contain the new ICE candidate; when used for ICE restarts, it will contain a new ICE ufrag/pwd pair.
 
@@ -466,7 +466,7 @@ In case of high load, the WHEP endpoints MAY return a 503 (Service Unavailable) 
 
 The WHEP endpoint MAY return STUN/TURN server configuration URLs and credentials usable by the client in the "201 Created" response to the HTTP POST request to the WHEP endpoint URL.
 
-Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel"" attribute value of "ice-server". The Link target URI is the server URL as defined in {{!RFC7064}} and {{!RFC7065}}. The credentials are encoded in the Link target attributes as follows:
+Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server". The Link target URI is the server URL as defined in {{!RFC7064}} and {{!RFC7065}}. The credentials are encoded in the Link target attributes as follows:
 
 - username: If the Link header field represents a TURN server, and credential-type is "password", then this attribute specifies the username to use with that TURN server.
 - credential: If the "credential-type" attribute is missing or has a "password" value, the credential attribute represents a long-term authentication password, as described in {{!RFC8489}}, Section 10.2.
@@ -507,9 +507,9 @@ Protocol extensions supported by the WHEP server MUST be advertised to the WHEP 
 
 Protocol extensions are optional for both WHEP players and servers. WHEP players MUST ignore any Link attribute with an unknown "rel" attribute value and WHEP servers MUST NOT require the usage of any of the extensions.
 
-Each protocol extension MUST register a unique "rel" attribute value at IANA starting with the prefix: "urn:ietf:params:whep:".
+Each protocol extension MUST register a unique "rel" attribute value at IANA starting with the prefix: "urn:ietf:params:whep:ext" as specified in {{urn-whep-subspace}}.
 
-For example, considering a potential extension of server-to-client communication using server-sent events as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events, the URL for connecting to the server side event resource for the published stream could be returned in the initial HTTP "201 Created" response with a "Link" header field and a "rel" attribute of "urn:ietf:params:whep:server-sent-events". (This document does not specify such an extension, and uses it only as an example.)
+For example, considering a potential extension of server-to-client communication using server-sent events as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events, the URL for connecting to the server side event resource for the published stream could be returned in the initial HTTP "201 Created" response with a "Link" header field and a "rel" attribute of "urn:ietf:params:whep:ext:example:server-sent-events". (This document does not specify such an extension, and uses it only as an example.)
 
 In this theoretical case, the HTTP 201 response to the HTTP POST request would look like:
 
@@ -517,7 +517,8 @@ In this theoretical case, the HTTP 201 response to the HTTP POST request would l
 HTTP/1.1 201 Created
 Content-Type: application/sdp
 Location: https://whep.example.org/resource/id
-Link: <https://whep.ietf.org/publications/213786HF/sse>;rel="urn:ietf:params:whep:server-side-events"
+Link: <https://whep.ietf.org/publications/213786HF/sse>;
+      rel="urn:ietf:params:whep:ext:example:server-side-events"
 ~~~~~
 
 
@@ -528,15 +529,96 @@ HTTPS SHALL be used in order to preserve the WebRTC security model.
 
 # IANA Considerations
 
-The link relation type below has been registered by IANA per Section 4.2 of {{!RFC8288}}.
+This specification adds a registry for URN sub-namespaces for WHEP protocol extensions.
 
-## Link Relation Type: ice-server
+## Registration of WHEP URN Sub-namespace and whep Registry
 
-Relation Name:  ice-server
+IANA has added an entry to the "IETF URN Sub-namespace for Registered Protocol Parameter Identifiers" registry and created a sub-namespace for the Registered Parameter Identifier as per {{!RFC3553}}: "urn:ietf:params:whep".
 
-Description:  For the WHEP protocol, conveys the STUN and TURN servers that can be used by an ICE Agent to establish a connection with a peer.
+To manage this sub-namespace, IANA has created the "System for Cross-domain Identity Management (WHEP) Schema URIs" registry, which is used to manage entries within the "urn:ietf:params:whep" namespace.  The registry description is as follows:
 
-Reference:  TBD
+   - Registry name: WHEP
+
+   - Specification: this document (RFC TBD)
+
+   - Repository: See Section {{urn-whep-subspace}}
+
+   - Index value: See Section {{urn-whep-subspace}}
+
+## URN Sub-namespace for whep {#urn-whep-subspace}
+
+whep Endpoint utilize URIs to identify the supported whep protocol extensions on the "rel" attribute of the Link header as defined in {{protocol-extensions}}.
+This section creates and registers an IETF URN Sub-namespace for use in the whep specifications and future extensions.
+
+### Specification Template
+
+Namespace ID:
+
+      The Namespace ID "whep" has been assigned.
+
+Registration Information:
+
+      Version: 1
+
+      Date: TBD
+
+Declared registrant of the namespace:
+
+      The Internet Engineering Task Force.
+
+Designated contact:
+
+       A designated expert will monitor the whep public mailing list, "wish@ietf.org".
+
+Declaration of Syntactic Structure:
+
+      The Namespace Specific String (NSS) of all URNs that use the "whep" Namespace ID shall have the following structure: urn:ietf:params:whep:{type}:{name}:{other}
+
+      The keywords have the following meaning:
+
+      - type: The entity type. This specification only defines the "ext" type.
+
+      - name: A required US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines a major namespace of a whep protocol extension. The value MAY also be an industry name or organization name.
+
+      - other: Any US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines the sub-namespace (which MAY be further broken down in namespaces delimited by colons) as needed to uniquely identify an whep protocol extension.
+
+Relevant Ancillary Documentation:
+
+      None
+
+Identifier Uniqueness Considerations:
+
+      The designated contact shall be responsible for reviewing and enforcing uniqueness.
+
+Identifier Persistence Considerations:
+
+      Once a name has been allocated, it MUST NOT be reallocated for a different purpose.
+      The rules provided for assignments of values within a sub-namespace MUST be constructed so that the meanings of values cannot change.
+      This registration mechanism is not appropriate for naming values whose meanings may change over time.
+
+Process of Identifier Assignment:
+
+      Namespace with type "ext" (e.g., "urn:ietf:params:whep:ext") is reserved for IETF-approved whep specifications.
+
+Process of Identifier Resolution:
+
+      None specified.
+
+Rules for Lexical Equivalence:
+
+      No special considerations; the rules for lexical equivalence specified in {{?RFC8141}} apply.
+
+Conformance with URN Syntax:
+
+      No special considerations.
+
+Validation Mechanism:
+
+      None specified.
+
+Scope:
+
+      Global.
 
 # Acknowledgements
 
