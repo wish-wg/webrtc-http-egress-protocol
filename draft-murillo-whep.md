@@ -466,28 +466,7 @@ In case of high load, the WHEP endpoints MAY return a 503 (Service Unavailable) 
 
 The WHEP endpoint MAY return STUN/TURN server configuration URLs and credentials usable by the client in the "201 Created" response to the HTTP POST request to the WHEP endpoint URL.
 
-Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server". The Link target URI is the server URL as defined in {{!RFC7064}} and {{!RFC7065}}. The credentials are encoded in the Link target attributes as follows:
-
-- username: If the Link header field represents a TURN server, and credential-type is "password", then this attribute specifies the username to use with that TURN server.
-- credential: If the "credential-type" attribute is missing or has a "password" value, the credential attribute represents a long-term authentication password, as described in {{!RFC8489}}, Section 10.2.
-- credential-type: If the Link header field represents a TURN server, then this attribute specifies how the credential attribute value should be used when that TURN server requests authorization. The default value if the attribute is not present is "password".
-
-~~~~~
-     Link: <stun:stun.example.net>; rel="ice-server"
-     Link: <turn:turn.example.net?transport=udp>; rel="ice-server";
-           username="user"; credential="myPassword"; credential-type="password"
-     Link: <turn:turn.example.net?transport=tcp>; rel="ice-server";
-           username="user"; credential="myPassword"; credential-type="password"
-     Link: <turns:turn.example.net?transport=tcp>; rel="ice-server";
-           username="user"; credential="myPassword"; credential-type="password"
-~~~~~
-{: title="Example ICE server configuration"}
-
-NOTE: The naming of both the "rel" attribute value of "ice-server" and the target attributes follows the one used on the W3C WebRTC recommendation {{?W3C.REC-webrtc-20210126} RTCConfiguration dictionary in section 4.2.1. "rel" attribute value of "ice-server" is not prepended with the "urn:ietf:params:whep:" so it can be reused by other specifications which may use this mechanism to configure the usage of STUN/TURN servers.
-
-There are some WebRTC implementations that do not support updating the STUN/TURN server configuration after the local offer has been created as specified in {{!RFC8829}} section 4.1.18. In order to support these clients, the WHEP endpoint MAY also include the STUN/TURN server configuration on the responses to OPTIONS request sent to the WHEP endpoint URL before the POST request is sent.
-
-The generation of the TURN server credentials may require performing a request to an external provider, which can both add latency to the OPTION request processing and increase the processing required to handle that request. In order to prevent this, the WHEP Endpoint SHOULD NOT return the STUN/TURN server configuration if the OPTION request is a preflight request for CORS, that is, if the OPTION request does not contain an Access-Control-Request-Method with "POST" value and the Access-Control-Request-Headers HTTP header does not contain the "Link" value. 
+Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server" as specified in {{I-D.draft-whish-whip}}
 
 It might be also possible to configure the STUN/TURN server URLs with long-term credentials provided by either the broadcasting service or an external TURN provider on the WHEP player, overriding the values provided by the WHEP endpoint.
 
@@ -495,7 +474,7 @@ It might be also possible to configure the STUN/TURN server URLs with long-term 
 
 WHEP endpoints and resources MAY require the HTTP request to be authenticated using an HTTP Authorization header field with a Bearer token as specified in {{!RFC6750}} section 2.1. WHEP players MUST implement this authentication and authorization mechanism and send the HTTP Authorization header field in all HTTP requests sent to either the WHEP endpoint or resource except the preflight OPTIONS requests for CORS.
 
-The nature, syntax, and semantics of the bearer token, as well as how to distribute it to the client, is outside the scope of this document. Some examples of the kind of tokens that could be used are, but are not limited to, JWT tokens as per {{!RFC6750}} and {{!RFC8725}} or a shared secret stored on a database. The tokens are typically made available to the end user alongside the WHEP endpoint URL and configured on the WHEP players (similar to the way RTMP URLs and Stream Keys are distributed).
+The nature, syntax, and semantics of the bearer token, as well as how to distribute it to the client, is outside the scope of this document. Some examples of the kind of tokens that could be used are, but are not limited to, JWT tokens as per {{!RFC6750}} and {{!RFC8725}} or a shared secret stored on a database. 
 
 WHEP endpoints and resources could perform the authentication and authorization by encoding an authentication token within the URLs for the WHEP endpoints or resources instead. In case the WHEP player is not configured to use a bearer token, the HTTP Authorization header field must not be sent in any request.
 
