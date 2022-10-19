@@ -396,7 +396,7 @@ A Media Server terminating a session MUST follow the procedures in {{!RFC7675}} 
 
 The WHEP Endpoints MUST return an "405 Method Not Allowed" response for any HTTP GET, HEAD or PUT requests on the endpoint URL in order to reserve its usage for future versions of this protocol specification.
 
-The WHIP endpoint MUST support OPTIONS requests for Cross-Origin Resource Sharing (CORS) as defined in [FETCH] and it SHOULD include an "Accept-Post" header with a mime type value of "application/sdp" on the "200 OK" response to any OPTIONS request recevied as per {{!W3C.REC-ldp-20150226}}.
+The WHEP Endpoints MUST support OPTIONS requests for Cross-Origin Resource Sharing (CORS) as defined in [FETCH] and it SHOULD include an "Accept-Post" header with a mime type value of "application/sdp" on the "200 OK" response to any OPTIONS request recevied as per {{!W3C.REC-ldp-20150226}}.
 
 The WHEP Resources MUST return an"405 Method Not Allowed" for any HTTP GET, HEAD, POST or PUT requests on the resource URL in order to reserve its usage for future versions of this protocol specification.
 
