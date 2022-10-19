@@ -24,7 +24,14 @@ author:
     name: Cheng Chen
     organization: ByteDance
     email: webrtc@bytedance.com
-
+    
+normative:
+  FETCH:
+    author:
+      org: WHATWG
+    title: Fetch - Living Standard
+    target: https://fetch.spec.whatwg.org
+      
 --- abstract
 
 This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services and/or Content Delivery Networks (CDNs) or WebRTC Transmission Network (WTNs).
