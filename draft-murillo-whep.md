@@ -1,5 +1,5 @@
 ---
-docname: draft-murillo-whep-00
+docname: draft-murillo-whep-01
 title: WebRTC-HTTP Egress Protocol (WHEP)
 abbrev: whep
 category: info
@@ -189,8 +189,9 @@ a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 
 HTTP/1.1 201 Created
-ETag: "38sdf4fdsf54:EsAw"
+ETag: "xyzzy"
 Content-Type: application/sdp
+Accept-Patch: application/trickle-ice-sdpfrag
 Content-Length: 1400
 Location: https://whep.example.org/resource/id
 
@@ -367,7 +368,7 @@ a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 
 HTTP/1.1 204 No Content
-ETag: "38sdf4fdsf54:EsAw"
+ETag: "xyzzy"
 ~~~~~
 {: title="HTTP POST and PATCH doing SDP O/A example"}
 
@@ -377,8 +378,8 @@ If the WHEP Resource does not receive an HTTP PATCH request before the time indi
 ## Common procedures
 
 The WHEP Resource COULD require a live publishing to be happening in order to allow a WHEP Players to start viewing a stream.
-In that case, the WHEP Resource SHALL return a 409 Conflict response to the POST request issued by the WHEP Client with a Retry-After header indicating the number of seconds before sending a new request.
-WHEP Players MAY periodically try to connect to the WHEP Resource with exponential backoff period with an initial value of the Retry-After header value in the 409 Conflict response.
+In that case, the WHEP Resource SHALL return a "409 Conflict" response to the POST request issued by the WHEP Client with a Retry-After header indicating the number of seconds before sending a new request.
+WHEP Players MAY periodically try to connect to the WHEP Resource with exponential backoff period with an initial value of the Retry-After header value in the "409 Conflict" response.
 
 Once a session is set up, ICE consent freshness {{!RFC7675}} will be used to detect abrupt disconnection and DTLS teardown for session termination by either side.
 
@@ -386,24 +387,28 @@ To explicitly terminate a session, the WHEP Player MUST perform an HTTP DELETE r
 
 A Media Server terminating a session MUST follow the procedures in {{!RFC7675}} section 5.2 for immediate revocation of consent.
 
-The WHEP Endpoints MUST return an HTTP 405 response for any HTTP GET, HEAD or PUT requests on the resource URL in order to reserve its usage for future versions of this protocol specification.
+The WHEP Endpoints MUST return an "405 Method Not Allowed" response for any HTTP GET, HEAD or PUT requests on the endpoint URL in order to reserve its usage for future versions of this protocol specification.
 
-The WHEP Resources MUST return an HTTP 405 response for any HTTP GET, HEAD, POST or PUT requests on the resource URL in order to reserve its usage for future versions of this protocol specification.
+The WHIP endpoint MUST support OPTIONS requests for Cross-Origin Resource Sharing (CORS) as defined in [FETCH] and it SHOULD include an "Accept-Post" header with a mime type value of "application/sdp" on the "200 OK" response to any OPTIONS request recevied as per {{!W3C.REC-ldp-20150226}}.
+
+The WHEP Resources MUST return an"405 Method Not Allowed" for any HTTP GET, HEAD, POST or PUT requests on the resource URL in order to reserve its usage for future versions of this protocol specification.
 
 ## ICE and NAT support
 
-The SDP provided by the WHEP Player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, or it MAY only contain local candidates (or even an empty list of candidates).
+The SDP provided by the WHEP Player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, or it MAY only contain local candidates (or even an empty list of candidates) as per {{!RFC8863}}.
 
 In order to simplify the protocol, there is no support for exchanging gathered trickle candidates from Media Server ICE candidates once the SDP answer is sent. The WHEP Endpoint SHALL gather all the ICE candidates for the Media Server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the Media Server. The Media Server MAY use ICE lite, while the WHEP player MUST implement full ICE.
 
-The WHEP Player MAY perform trickle ICE or ICE restarts {{!RFC8863}} by sending an HTTP PATCH request to the WHEP resource URL with a body containing a SDP fragment with MIME type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}}. When used for trickle ICE, the body of this PATCH message will contain the new ICE candidate; when used for ICE restarts, it will contain a new ICE ufrag/pwd pair.
+Trickle ICE and ICE restart support is OPTIONAL for a WHEP resource.
 
-The WHEP Player MUST NOT send any ICE trickle or restart until the SDP O/A is completed. So, if the WHEP Player is not acting as offerer in the SDP O/A, it MUST NOT send any HTTP PATCH request for ICE trickle or restart until the 200 OK response to the HTTP PATCH request containing the SDP answer has been received.
+If the WHEP resource supports either Trickle ICE or ICE restarts, the WHEP player MUST include an "Accept-Patch" header with a mime type value of "application/trickle-ice-sdpfrag" in the "201 Created" of the POST request that creates the WHEP resource as per {{!RFC5789}} section 3.1.
 
-Trickle ICE and ICE restart support is OPTIONAL for a WHEP resource. If both Trickle ICE or ICE restarts are not supported by the WHEP resource, it MUST return a 405 Method Not Allowed response for any HTTP PATCH request. If the WHEP resource supports either Trickle ICE or ICE restarts, but not both, it MUST return a 501 Not Implemented for the HTTP PATCH requests that are not supported.
+If the WHEP resource supports either Trickle ICE or ICE restarts, but not both, it MUST return a "405 Not Implemented" response for the HTTP PATCH requests that are not supported.
+
+If the WHEP resource does not support the PATCH method for any purpose, it MUST return a "501 Not Implemented" response, as described in {{!RFC9110}} section 6.6.2.
 
 As the HTTP PATCH request sent by a WHEP player may be received out-of-order by the WHEP Resource, the WHEP Resource MUST generate a
-unique strong entity-tag identifying the ICE session as per {{!RFC9110}} section 2.3. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the 201 response to the initial POST request to the WHEP Endpoint if the WHEP player is acting as SDP offerer, or in the HTTP PATCH response containing the SDP answer otherwise. It MUST also be returned in the 200 OK of any PATCH request that triggers an ICE restart.
+unique strong entity-tag identifying the ICE session as per {{!RFC9110}} section 2.3. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the "201 Created" response to the initial POST request to the WHEP Endpoint if the WHEP player is acting as SDP offerer, or in the HTTP PATCH response containing the SDP answer otherwise. It MUST also be returned in the "200 OK" of any PATCH request that triggers an ICE restart. Note that including the ETag in the original "201 Created" response is only REQUIRED if the WHEP resource supports ICE restarts and OPTIONAL otherwise.
 
 A WHEP Player sending a PATCH request for performing trickle ICE MUST include an "If-Match" header field with the latest known entity-tag as per {{!RFC9110}} section 3.1. When the PATCH request is received by the WHEP resource, it MUST compare the indicated entity-tag value with the current entity-tag of the resource as per {{!RFC9110}} section 3.1 and return a "412 Precondition Failed" response if they do not match. 
 
@@ -436,7 +441,7 @@ A WHEP Player sending a PATCH request for performing ICE restart MUST contain an
 
 If the HTTP PATCH request results in an ICE restart, the WHEP resource SHALL return a "200 OK" with an "application/trickle-ice-sdpfrag" body containing the new ICE username fragment and password. The response may optionally contain the new set of ICE candidates for the Media Server and the new entity-tag correspond to the new ICE session in an ETag response header field.
 
-If the ICE request cannot be satisfied by the WHEP Resource, the WHEP Resource MUST return an appropriate HTTP error code and MUST NOT terminate the session immediately. The WHEP Player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In either case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{!RFC7675}} section 5.1. 
+If the ICE request cannot be satisfied by the WHEP Resource, the WHEP resource SHALL return a "200 OK" with an "application/trickle-ice-sdpfrag" body containing the new ICE username fragment and password. Also, the "200 OK" response for a successful ICE restart MUST contain the new entity-tag corresponding to the new ICE session in an ETag response header field and MAY contain a new set of ICE candidates for the Media Server.
 
 ~~~~~
 PATCH /resource/id HTTP/1.1
@@ -469,7 +474,7 @@ In the specific case of media consumption from a streaming service, some assumpt
 
 In order to reduce the complexity of implementing WHEP in both players and Media Servers, WHEP imposes the following restrictions regarding WebRTC usage:
 
-Both the WHEP Player and the WHEP Endpoint SHALL use SDP bundle {{!RFC9143}}. Each "m=" section MUST be part of a single BUNDLE group. Hence, when a WHEP Player or a  WHEP Endpoints sends an SDP offer, it MUST include a "bundle-only" attribute in each bundled "m=" section. The WHEP player and the Media Server MUST support multiplexed media associated with the BUNDLE group as per {{!RFC9143}} section 9. In addition, per {{!RFC9143}} the WHEP Player and Media Server will use RTP/RTCP multiplexing for all bundled media. The WHEP Player and Media Server SHOULD include the "rtcp-mux-only" attribute in each bundled "m=" section.
+Both the WHEP Player and the WHEP Endpoint SHALL use SDP bundle {{!RFC9143}}. Each "m=" section MUST be part of a single BUNDLE group. Hence, when a WHEP Player or a  WHEP Endpoints sends an SDP offer, it MUST include a "bundle-only" attribute in each bundled "m=" section. The WHEP player and the Media Server MUST support multiplexed media associated with the BUNDLE group as per {{!RFC9143}} section 9. In addition, per {{!RFC9143}} the WHEP Player and Media Server will use RTP/RTCP multiplexing for all bundled media. The WHEP Player and Media Server SHOULD include the "rtcp-mux-only" attribute in each bundled "m=" section as per {{!RFC8858}}.
 
 As the codecs for a given stream may not be known by the Media Server when the WHEP Player starts watching a stream, if the WHEP Endpoint is acting as SDP answerer, it MUST include all the offered codecs that it supports in the SDP answer and not make any assumption about which will be the codec that will be actually sent.
 
@@ -477,9 +482,9 @@ Trickle ICE and ICE restarts support is OPTIONAL for both the WHEP Players and M
 
 ## Load balancing and redirections
 
-WHEP Endpoints and Media Servers might not be co-located on the same server, so it is possible to load balance incoming requests to different Media Servers. WHEP Players SHALL support HTTP redirection via the "307 Temporary Redirect response code" as described in {{!RFC9110}} section 6.4.7. The WHEP Resource URL MUST be a final one, and redirections are not required to be supported for the PATCH and DELETE requests sent to it.
+WHEP Endpoints and Media Servers might not be co-located on the same server, so it is possible to load balance incoming requests to different Media Servers. WHEP Players SHALL support HTTP redirection via the "307 Temporary Redirect" response as described in {{!RFC9110}} section 6.4.7. The WHEP Resource URL MUST be a final one, and redirections are not required to be supported for the PATCH and DELETE requests sent to it.
 
-In case of high load, the WHEP endpoints MAY return a 503 (Service Unavailable) status code indicating that the server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. The WHEP Endpoint might send a Retry-After header field indicating the minimum time that the user agent ought to wait before making a follow-up request.
+In case of high load, the WHEP endpoints MAY return a "503 Service Unavailable" response indicating that the server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. The WHEP Endpoint might send a Retry-After header field indicating the minimum time that the user agent ought to wait before making a follow-up request.
 
 ## STUN/TURN server configuration
 
@@ -509,7 +514,7 @@ Each protocol extension MUST register a unique "rel" attribute value at IANA sta
 
 For example, considering a potential extension of server-to-client communication using server-sent events as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events, the URL for connecting to the server side event resource for the published stream could be returned in the initial HTTP "201 Created" response with a "Link" header field and a "rel" attribute of "urn:ietf:params:whep:ext:example:server-sent-events". (This document does not specify such an extension, and uses it only as an example.)
 
-In this theoretical case, the HTTP 201 response to the HTTP POST request would look like:
+In this theoretical case, the "201 Created" response to the HTTP POST request would look like:
 
 ~~~~~
 HTTP/1.1 201 Created
