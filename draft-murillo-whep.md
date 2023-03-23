@@ -348,7 +348,7 @@ Protocol extensions are optional for both WHEP Players and WHEP Endpoints and Re
 
 Each protocol extension MUST register a unique "rel" attribute value at IANA starting with the prefix: "urn:ietf:params:whep:ext" as specified in {{urn-whep-subspace}}.
 
-In the first version of the WHEP specification, two optional extensions are defined, the server sent events and the layer selection.
+In the first version of the WHEP specification, two optional extensions are defined: the Server Sent Events and the Video Layer Selection.
 
 ### Server Sent Events extension
 
@@ -362,7 +362,7 @@ Link: <https://whep.ietf.org/resource/213786HF/sse>;
       rel="urn:ietf:params:whep:ext:core:server-sent-events"
       events="active,inactive,layers,viewercount"
 ~~~~~
-{: title="HTTP 201 response example containing a Server Sent Events extension"}
+{: title="HTTP 201 response example containing the Server Sent Events extension"}
 
 If the extension is also supported by the WHEP player, it MAY send a POST request to the Server Sent Events REST API entrypoint to create a server-to-client event stream using WHATWG server sent events protocol. The POST request MAY contain an "application/json" body with an JSON array indicating the subset of the event list announced by the WHEP Resource on the "events" atribute which COULD be sent by the server using the server-to-client communication channel. The WHEP Endpoint will return a "201 Created" response with a Location header field pointing to the newly created server-to-client event stream.
 
@@ -417,9 +417,21 @@ The event is sent by the WHEP Resource when an active publication is no longer a
 The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in Chapter {TBD}.
 
 - event name: "layers"
-- event data: JSON object (TBD)
+- event data: JSON object
 
 The WHEP Resource MAY send the event periodically or just when the layer information has changed.
+
+The information that can sent on the JSON object in the event message is as follows:
+
+- encodingId	: (String)	rid value of the simulcast encoding of the layer
+- simulcastIdx	: (Number) the simulcast order of the encoding layer.
+- spatialLayerId	: (Number) the spatial layer id of the encoding layer.
+- temporalLayerId	: (Number) the temporal layer id of the encoding layer.
+-	bitrate: (Number) the spatial layer id of the encoding layer.
+-	width: (Number) the current video with of the encoding layer.
+-	heigth: (Number) the current video height of the encoding layer.
+
+The event MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
 
 #### viewercount event
 The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
@@ -429,8 +441,55 @@ The event is sent by the WHEP Resource to provide the WHIP Player the informatio
 
 The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
 
-### Layer selection extension
+### Video Layer Selection extension
 
+The Layer Selection extensions allows the WHEP Player to control which video layer or rendition is being delivered through the negotiated video MediaStreamTrack. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:layer" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Video Layer Selection REST API entrypoint. If this extension is supported by the WHEP Resource, the Server Sent Events extension MUST be supported as well and the "layers" event MUST be advertised as well.
+
+~~~~~
+HTTP/1.1 201 Created
+Content-Type: application/sdp
+Location: https://whep.example.org/resource/213786HF
+Link: <https://whep.ietf.org/resource/213786HF/layer>;
+      rel="urn:ietf:params:whep:ext:core:layer"
+Link: <https://whep.ietf.org/resource/213786HF/layer>;
+      rel="urn:ietf:params:whep:ext:core:server-sent-events"
+      events="layers"
+~~~~~
+{: title="HTTP 201 response example containing the Video Layer Selection extension"}
+
+In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP Player (based on bandwidth estimation or any other business logic). However, the WHEP Player (or the person watching the stream) may decide that it whishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP Player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropiate HTTP error response if not.
+
+The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
+
+- encodingId:	(String)	 rid value of the simulcast encoding of the track (default: automatic selection)
+- spatialLayerId:	(Number)	The spatial layer id to send to the outgoing stream (default: max layer available)
+- temporalLayerId:	(Number)	The temporaral layer id to send to the outgoing stream (default: max layer available)
+- maxSpatialLayerId:	(Number)	Max spatial layer id (default: unlimited)
+- maxTemporalLayerId:	(Number)	Max temporal layer id (default: unlimited)
+
+The information about the avialable encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
+
+~~~~~
+POST /resource/213786HF/layer HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sjon
+
+{"encodingId": "hd"}
+
+HTTP/1.1 200 OK
+~~~~~
+
+If the WHEP Player wishes to return to the default selection performed by the Media Server, it just need to send an empty JSON Object instead:
+
+~~~~~
+POST /resource/213786HF/layer HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sjon
+
+{}
+
+HTTP/1.1 200 OK
+~~~~~
 
 # Security Considerations
 
