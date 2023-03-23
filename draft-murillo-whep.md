@@ -348,17 +348,88 @@ Protocol extensions are optional for both WHEP Players and WHEP Endpoints and Re
 
 Each protocol extension MUST register a unique "rel" attribute value at IANA starting with the prefix: "urn:ietf:params:whep:ext" as specified in {{urn-whep-subspace}}.
 
-For example, considering a potential extension of server-to-client communication using server-sent events as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events, the URL for connecting to the server side event resource for the published stream could be returned in the initial HTTP "201 Created" response with a "Link" header field and a "rel" attribute of "urn:ietf:params:whep:ext:example:server-sent-events". (This document does not specify such an extension, and uses it only as an example.)
+In the first version of the WHEP specification, two optional extensions are defined, the server sent events and the layer selection.
 
-In this theoretical case, the "201 Created" response to the HTTP POST request would look like:
+### Server Sent Events extension
+
+This optional extesion provides support for server-to-client communication using WHATWG server sent events protocol as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:sse" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Server Sent Events REST API entrypoint. The "Link" header field MAY also contain an "events" attribute with a coma separated list of supported event types. 
 
 ~~~~~
 HTTP/1.1 201 Created
 Content-Type: application/sdp
-Location: https://whep.example.org/resource/id
-Link: <https://whep.ietf.org/publications/213786HF/sse>;
-      rel="urn:ietf:params:whep:ext:example:server-side-events"
+Location: https://whep.example.org/resource/213786HF
+Link: <https://whep.ietf.org/resource/213786HF/sse>;
+      rel="urn:ietf:params:whep:ext:core:server-sent-events"
+      events="active,inactive,layers,viewercount"
 ~~~~~
+{: title="HTTP 201 response example containing a Server Sent Events extension"}
+
+If the extension is also supported by the WHEP player, it MAY send a POST request to the Server Sent Events REST API entrypoint to create a server-to-client event stream using WHATWG server sent events protocol. The POST request MAY contain an "application/json" body with an JSON array indicating the subset of the event list announced by the WHEP Resource on the "events" atribute which COULD be sent by the server using the server-to-client communication channel. The WHEP Endpoint will return a "201 Created" response with a Location header field pointing to the newly created server-to-client event stream.
+
+~~~~~
+POST /resource/213786HF/sse HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sjon
+
+["active","inactive","layers","viewercount"]
+
+HTTP/1.1 201 Created
+Location: https://whep.example.org/resource/213786HF/sse/event-stream
+~~~~~
+{: title="HTTP POST request to create a server-to-client event stream"}
+
+Once the server-to-client communication channel has been created the WHEP player can perform a long pull using the Url returned on the location header as expecified in the WHATWG server sent events protocol.
+
+When an event is generated, the WHEP Resource MUST check for each event stream if the type is on the list provided by the WHEP player when the event stream was created, and if so enque it for delivering when an active long pull request is available.
+
+The events types supported by this specification are the following:
+
+- active: indicating that there is an active publication ongoing for this resource.
+- inactive: indicating that there is no active publication ongoing for this resource.
+- layers: provides information about the video layers being published for this resource.
+- viewercount: provides the number of viewers currently connected to this resource.
+
+The WHEP resource must indicate the event type in the "event" field and a JSON serialized string in the "data" field of the WHATWG server sent events message. In order to make the processing simpler on the WHEP Player, the WHEP resource MUST encode the event data in a single "data" line.
+
+~~~~~
+event: viewercount
+data: {"viewercount":3}
+~~~~~
+{: title="Example event"}
+
+The WHEP Player MAY destroy the event stream at anytime by sending a HTTP DELETE request to the Url returned on the location header on the created request. The WHEP Resource MUST drop any pending queued event and return a "404 Not found" if any further long pull request is received for the event stream.
+
+All the event streams associated with a WHEP Resource MUST be destroyed when the WHEP Resource is terminated.
+
+#### active event
+The event is sent by the WHEP Resource when an active publication for the WHEP resource, either at the begining of the playback when the resource is created or later during the playback session.
+
+- event name: "active"
+- event data: JSON object (TBD)
+
+#### inactive event
+The event is sent by the WHEP Resource when an active publication is no longer available. The WHEP Resource MUST not send an initial "inactive" event if there is no active publication when the resource is created.
+
+- event name: "active"
+- event data: JSON object (TBD)
+- 
+#### layers event
+The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in Chapter {TBD}.
+
+- event name: "layers"
+- event data: JSON object (TBD)
+
+The WHEP Resource MAY send the event periodically or just when the layer information has changed.
+
+#### viewercount event
+The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
+
+- event name: "viewercount"
+- event data: JSON object containing a "viewercount" attribute with a Number value indicating the number of viewers currently watching the WHIP resource.
+
+The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
+
+### Layer selection extension
 
 
 # Security Considerations
