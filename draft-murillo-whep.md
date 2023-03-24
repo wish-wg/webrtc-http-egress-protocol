@@ -433,6 +433,42 @@ The information that can sent on the JSON object in the event message is as foll
 
 The event MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
 
+~~~~~
+{
+  "0": {
+    "active": [
+      {
+        "id": "1", "simulcastIdx": 1, "bitrate": 538288, "layers": [
+          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112 , width: 640, height: 360},
+          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592 , width: 640, height: 360 }
+        ]
+      },
+      {
+        "id": "0", "simulcastIdx": 0, "bitrate": 111600, "layers": [
+          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180  },
+          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 }
+        ]
+      }
+    ],
+    "inactive": [
+      {
+        "id": "2", "simulcastIdx": 2, "bitrate": 2712312, "layers": [
+          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 2798304 },
+          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 1701184 }
+        ]
+      },
+    ],
+    "layers": [
+      { "encodingId": "1", "simulcastIdx": 1, "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
+      { "encodingId": "1", "simulcastIdx": 1, "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
+      { "encodingId": "0", "simulcastIdx": 0, "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
+      { "encodingId": "0", "simulcastIdx": 0, "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
+    ]
+  }
+}
+~~~~~
+{: title="Example event"}
+
 #### viewercount event
 The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
 
