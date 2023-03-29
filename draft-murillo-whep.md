@@ -412,7 +412,7 @@ The event is sent by the WHEP Resource when an active publication is no longer a
 
 - event name: "active"
 - event data: JSON object (TBD)
-- 
+
 #### layers event
 The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in Chapter {TBD}.
 
@@ -425,32 +425,34 @@ The event data JSON object contains the video layer information available for ea
 
 Each value of the JSON object entries will be a JSON object with the following attributes
 
-- active: (Array<Object>) Containing the information of the active simulcast layers.
-- inactive: (Array<Object>) Containing the information of the inactive simulcast layers.
-- layers: (Array<Object>) Containing the information of the active simulcast, spatials or temporal layers available for layer selection.
+- active: (Array&lt;Object&gt;) Containing the information of the active simulcast layers.
+- inactive: (Array&lt;Object&gt;) Containing the information of the inactive simulcast layers.
+- layers: (Array&lt;Object&gt;) Containing the information of the active simulcast, spatials or temporal layers available for layer selection.
 
-Each "active" JSON objet contains the following informatione
-- id	: (String)	rid value of the simulcast encoding of the layer
-- simulcastIdx	: (Number) the simulcast order of the encoding layer.
--	bitrate: (Number) the spatial layer id of the encoding layer.
--	width: (Number) the current video with of the encoding layer.
--	heigth: (Number) the current video height of the encoding layer.
- 
-Each "inactive" JSON contains the following informatione
-- id	: (String)	rid value of the simulcast encoding of the layer
-- simulcastIdx	: (Number) the simulcast order of the encoding layer.
--	width: (Number) the current video with of the encoding layer
--	heigth: (Number) the current video height of the encoding layer.
- 
-Each "layer" JSON contains the following informatione
+Each "active" JSON objet contains the following information:
 
-- encodingId	: (String)	rid value of the simulcast encoding of the layer
-- simulcastIdx	: (Number) the simulcast order of the encoding layer.
-- spatialLayerId	: (Number) the spatial layer id of the encoding layer.
-- temporalLayerId	: (Number) the temporal layer id of the encoding layer.
--	bitrate: (Number) the spatial layer id of the encoding layer.
--	width: (Number) the current video with of the encoding layer.
--	heigth: (Number) the current video height of the encoding layer.
+- id: (String) rid value of the simulcast encoding of the layer
+- simulcastIdx: (Number) the simulcast order of the encoding layer.
+- bitrate: (Number) the spatial layer id of the encoding layer.
+- width: (Number) the current video with of the encoding layer.
+- heigth: (Number) the current video height of the encoding layer.
+ 
+Each "inactive" JSON contains the following information:
+
+- id: (String) rid value of the simulcast encoding of the layer.
+- simulcastIdx: (Number) the simulcast order of the encoding layer.
+- width: (Number) the current video with of the encoding layer
+- heigth: (Number) the current video height of the encoding layer.
+ 
+Each "layer" JSON contains the following information:
+
+- encodingId: (String) rid value of the simulcast encoding of the layer
+- simulcastIdx: (Number) the simulcast order of the encoding layer.
+- spatialLayerId: (Number) the spatial layer id of the encoding layer.
+- temporalLayerId: (Number) the temporal layer id of the encoding layer.
+- bitrate: (Number) the spatial layer id of the encoding layer.
+- width: (Number) the current video with of the encoding layer.
+- heigth: (Number) the current video height of the encoding layer.
 
 The "layer" object MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
 
@@ -508,12 +510,13 @@ Link: <https://whep.ietf.org/resource/213786HF/layer>;
 In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP Player (based on bandwidth estimation or any other business logic). However, the WHEP Player (or the person watching the stream) may decide that it whishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP Player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropiate HTTP error response if not.
 
 The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
-- mediaId: ("String") m-line index to apply the layer selection(default: first video m-line)
-- encodingId:	(String)	 rid value of the simulcast encoding of the track (default: automatic selection)
-- spatialLayerId:	(Number)	The spatial layer id to send to the outgoing stream (default: max layer available)
-- temporalLayerId:	(Number)	The temporaral layer id to send to the outgoing stream (default: max layer available)
-- maxSpatialLayerId:	(Number)	Max spatial layer id (default: unlimited)
-- maxTemporalLayerId:	(Number)	Max temporal layer id (default: unlimited)
+
+- mediaId: (String) m-line index to apply the layer selection(default: first video m-line)
+- encodingId: (String)  rid value of the simulcast encoding of the track (default: automatic selection)
+- spatialLayerId: (Number) The spatial layer id to send to the outgoing stream (default: max layer available)
+- temporalLayerId: (Number) The temporaral layer id to send to the outgoing stream (default: max layer available)
+- maxSpatialLayerId: (Number) Max spatial layer id (default: unlimited)
+- maxTemporalLayerId: (Number) Max temporal layer id (default: unlimited)
 
 The information about the avialable encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
 
