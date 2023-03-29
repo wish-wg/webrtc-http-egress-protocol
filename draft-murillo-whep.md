@@ -421,7 +421,28 @@ The event is sent by the WHEP Resource to provide information to the WHEP player
 
 The WHEP Resource MAY send the event periodically or just when the layer information has changed.
 
-The information that can sent on the JSON object in the event message is as follows:
+The event data JSON object contains the video layer information available for each "m-line" indexed by the "m-line" order in the SDP.
+
+Each value of the JSON object entries will be a JSON object with the following attributes
+
+- active: (Array<Object>) Containing the information of the active simulcast layers.
+- inactive: (Array<Object>) Containing the information of the inactive simulcast layers.
+- layers: (Array<Object>) Containing the information of the active simulcast, spatials or temporal layers available for layer selection.
+
+Each "active" JSON objet contains the following informatione
+- id	: (String)	rid value of the simulcast encoding of the layer
+- simulcastIdx	: (Number) the simulcast order of the encoding layer.
+-	bitrate: (Number) the spatial layer id of the encoding layer.
+-	width: (Number) the current video with of the encoding layer.
+-	heigth: (Number) the current video height of the encoding layer.
+ 
+Each "inactive" JSON contains the following informatione
+- id	: (String)	rid value of the simulcast encoding of the layer
+- simulcastIdx	: (Number) the simulcast order of the encoding layer.
+-	width: (Number) the current video with of the encoding layer
+-	heigth: (Number) the current video height of the encoding layer.
+ 
+Each "layer" JSON contains the following informatione
 
 - encodingId	: (String)	rid value of the simulcast encoding of the layer
 - simulcastIdx	: (Number) the simulcast order of the encoding layer.
@@ -431,31 +452,22 @@ The information that can sent on the JSON object in the event message is as foll
 -	width: (Number) the current video with of the encoding layer.
 -	heigth: (Number) the current video height of the encoding layer.
 
-The event MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
+The "layer" object MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
 
 ~~~~~
 {
   "0": {
     "active": [
       {
-        "id": "1", "simulcastIdx": 1, "bitrate": 538288, "layers": [
-          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112 , width: 640, height: 360},
-          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592 , width: 640, height: 360 }
-        ]
+        "id": "1", "simulcastIdx": 1, "bitrate": 538288, width: 640, height: 360
       },
       {
-        "id": "0", "simulcastIdx": 0, "bitrate": 111600, "layers": [
-          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180  },
-          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 }
-        ]
+        "id": "0", "simulcastIdx": 0, "bitrate": 111600, width: 320, height: 180
       }
     ],
     "inactive": [
       {
-        "id": "2", "simulcastIdx": 2, "bitrate": 2712312, "layers": [
-          { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 2798304 },
-          { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 1701184 }
-        ]
+        "id": "2", "simulcastIdx": 2
       },
     ],
     "layers": [
@@ -496,7 +508,7 @@ Link: <https://whep.ietf.org/resource/213786HF/layer>;
 In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP Player (based on bandwidth estimation or any other business logic). However, the WHEP Player (or the person watching the stream) may decide that it whishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP Player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropiate HTTP error response if not.
 
 The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
-
+- mediaId: ("String") m-line index to apply the layer selection(default: first video m-line)
 - encodingId:	(String)	 rid value of the simulcast encoding of the track (default: automatic selection)
 - spatialLayerId:	(Number)	The spatial layer id to send to the outgoing stream (default: max layer available)
 - temporalLayerId:	(Number)	The temporaral layer id to send to the outgoing stream (default: max layer available)
@@ -510,7 +522,7 @@ POST /resource/213786HF/layer HTTP/1.1
 Host: whep.example.com
 Content-Type: application/sjon
 
-{"encodingId": "hd"}
+{mediaId:"0", "encodingId": "hd"}
 
 HTTP/1.1 200 OK
 ~~~~~
