@@ -1,12 +1,13 @@
 ---
-docname: draft-murillo-whep-03
+docname: draft-ietf-wish-whep-00
 title: WebRTC-HTTP Egress Protocol (WHEP)
-abbrev: whep
-category: info
-
+abbrev: whip
+category: std
 ipr: trust200902
-area: Security
-keyword: Internet-Draft WebRTC
+area: ART
+workgroup: wish
+
+keyword: WebRTC
 
 stand_alone: yes
 pi: [toc, sortrefs, symrefs]
