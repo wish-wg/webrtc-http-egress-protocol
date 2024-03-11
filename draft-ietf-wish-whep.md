@@ -52,30 +52,24 @@ There are many situations in which the lack of a standard protocol for consuming
 - Integration with Dynamic Adaptive Streaming over HTTP (DASH) for offering live streams via WebRTC while offering a time-shifted version via DASH.
 - Playing WebRTC streams on devices that don't support custom javascript to be run (like TVs).
 
-This document mimics what has been done  the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-ietf-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
+This document mimics what has been done in the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-ietf-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
 
 # Terminology
 
 {::boilerplate bcp14-tagged}
 
-- WHEP Player: WebRTC media player that acts as a client of the WHEP protocol by receiving and decoding the media from a remote Media Server.
-- WHEP Endpoint: Egress server receiving the initial WHEP request.
-- WHEP Endpoint URL: URL of the WHEP endpoint that will create the WHEP resource.
-- Media Server: WebRTC Media Server or consumer that establishes the media session with the WHEP player and delivers the media to it.
-- WHEP Resource: Allocated resource by the WHEP endpoint for an ongoing egress session that the WHEP player can send requests for altering the session (ICE operations or termination, for example).
-- WHEP Resource URL: URL allocated to a specific media session by the WHEP endpoint which can be used to perform operations such as terminating the session or ICE restarts.
-
-
 # Overview
 
-The WebRTC-HTTP Egress Protocol (WHEP) uses an HTTP POST request to perform a single-shot SDP offer/answer so an ICE/DTLS session can be established between the WHEP Player and the streaming service endpoint (Media Server).
+The WebRTC-HTTP Ingest Protocol (WHIP) is designed to facilitate a one-time exchange of Session Description Protocol (SDP) offers and answers using HTTP POST requests. This exchange is a fundamental step in establishing an Interactive Connectivity Establishment (ICE) and Datagram Transport Layer Security (DTLS) session between WHEP player and the streaming service endpoint (Media Server).
 
-Once the ICE/DTLS session is set up, the media will flow unidirectionally from Media Server to the WHEP Player. In order to reduce complexity, no SDP renegotiation is supported, so no  "m=" sections can be added once the initial SDP offer/answer over HTTP is completed.
+Upon successful establishment of the ICE/DTLS session, unidirectional media data transmission commences from the media server to the WHEP player. It is important to note that SDP renegotiations are not supported in WHEP, meaning that no modifications to the "m=" sections can be made after the initial SDP offer/answer exchange via HTTP POST is completed and only ICE related information can be updated via HTTP PATCH requests as defined in {{ice-support}}.
+
+The following diagram illustrates the core operation of the WHEP protocol for initiating and terminating a viewing session:
 
 ~~~~~
                                                                                
  +-------------+    +---------------+ +--------------+ +---------------+
- | WHEP Player |    | WHEP Endpoint | | Media Server | | WHEP Resource |
+ | WHEP player |    | WHEP endpoint | | Media Server | | WHEP session |
  +--+----------+    +---------+-----+ +------+-------+ +--------|------+
     |                         |              |                  |       
     |                         |              |                  |       
@@ -97,8 +91,16 @@ Once the ICE/DTLS session is set up, the media will flow unidirectionally from M
     <-----------------------------------------------------------x       
                                                                                
 ~~~~~
-{: title="WHEP session setup and teardown"}
+{: title="WHEP session setup and teardown" #whep-protocol-operation}
 
+The elements in {{whep-protocol-operation}} are described as follows:
+
+- WHEP player: This represents the WebRTC media player, which functions as a client of the WHEP protocol by receiving and decoding the media from a remote media server.
+- WHEP endpoint: This denotes the egress server that receives the initial WHEP request.
+- WHEP endpoint URL: Refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
+- Media server: This is the WebRTC Media Server that establishes the media session with the WHEP player and delivers the media to it.
+- WHEP sesion: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
+- WHEP session URL: Refers to the URL of the WHEP resource allocated by the WHEP endpoint for a specific media session. The WHEP client can send requests to the WHEP session using this URL to modify the session, such as ICE operations or termination.
 
 # Protocol Operation
 
