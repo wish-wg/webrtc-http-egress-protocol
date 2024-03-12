@@ -636,94 +636,151 @@ In order to prevent this scenario, WHEP endpoints SHOULD implement a rate limit 
 
 This specification adds a registry for URN sub-namespaces for WHEP protocol extensions.
 
-## Registration of WHEP URN Sub-namespace and whep Registry
+## Registration of WHEP URN Sub-namespace and WHEP Registry
 
-IANA has added an entry to the "IETF URN Sub-namespace for Registered Protocol Parameter Identifiers" registry and created a sub-namespace for the Registered Parameter Identifier as per {{!RFC3553}}: "urn:ietf:params:whep".
+IANA is asked to add an entry to the "IETF URN Sub-namespace for Registered Protocol Parameter Identifiers" registry and create a sub-namespace for the Registered Parameter Identifier as per {{!RFC3553}}: "urn:ietf:params:whep".
 
-To manage this sub-namespace, IANA has created the "System for Cross-domain Identity Management (WHEP) Schema URIs" registry, which is used to manage entries within the "urn:ietf:params:whep" namespace.  The registry description is as follows:
+To manage this sub-namespace, IANA is asked to create the "WebRTC-HTTP ingestion protocol (WHEP) URNs" registry, which is used to manage entries within the "urn:ietf:params:whep" namespace. The registry description is as follows:
 
-   - Registry name: WHEP
+   - Registry name: WebRTC-HTTP ingestion protocol (WHEP) URNs
 
    - Specification: this document (RFC TBD)
+
+   - Registration policy: Specification Required
 
    - Repository: See Section {{urn-whep-subspace}}
 
    - Index value: See Section {{urn-whep-subspace}}
+     
 
-## URN Sub-namespace for whep {#urn-whep-subspace}
+## URN Sub-namespace for WHEP {#urn-whep-subspace}
 
-whep Endpoint utilize URIs to identify the supported whep protocol extensions on the "rel" attribute of the Link header as defined in {{protocol-extensions}}.
-This section creates and registers an IETF URN Sub-namespace for use in the whep specifications and future extensions.
+WHEP endpoint utilizes URNs to identify the supported WHEP protocol extensions on the "rel" attribute of the Link header as defined in {{protocol-extensions}}.
+
+This section creates and registers an IETF URN Sub-namespace for use in the WHEP specifications and future extensions.
 
 ### Specification Template
 
 Namespace ID:
 
-      The Namespace ID "whep" has been assigned.
+- The Namespace ID "whep" has been assigned.
 
 Registration Information:
 
-      Version: 1
+- Version: 1
 
-      Date: TBD
+- Date: TBD
 
 Declared registrant of the namespace:
 
-      The Internet Engineering Task Force.
+- Registering organization: The Internet Engineering Task Force.
 
-Designated contact:
-
-       A designated expert will monitor the whep public mailing list, "wish@ietf.org".
+- Designated contact: A designated expert will monitor the WHEP public mailing list, "wish@ietf.org".
 
 Declaration of Syntactic Structure:
 
-      The Namespace Specific String (NSS) of all URNs that use the "whep" Namespace ID shall have the following structure: urn:ietf:params:whep:{type}:{name}:{other}
+- The Namespace Specific String (NSS) of all URNs that use the "whep" Namespace ID shall have the following structure: urn:ietf:params:whep:{type}:{name}:{other}.
 
-      The keywords have the following meaning:
+ - The keywords have the following meaning:
 
-      - type: The entity type. This specification only defines the "ext" type.
+     - type: The entity type. This specification only defines the "ext" type.
 
-      - name: A required US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines a major namespace of a whep protocol extension. The value MAY also be an industry name or organization name.
+     - name: A required US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines a major namespace of a WHEP protocol extension. The value MAY also be an industry name or organization name.
 
-      - other: Any US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines the sub-namespace (which MAY be further broken down in namespaces delimited by colons) as needed to uniquely identify an whep protocol extension.
+     - other: Any US-ASCII string that conforms to the URN syntax requirements (see {{?RFC8141}}) and defines the sub-namespace (which MAY be further broken down in namespaces delimited by colons) as needed to uniquely identify an WHEP protocol extension.
 
 Relevant Ancillary Documentation:
 
-      None
+ - None
 
 Identifier Uniqueness Considerations:
 
-      The designated contact shall be responsible for reviewing and enforcing uniqueness.
+- The designated contact shall be responsible for reviewing and enforcing uniqueness.
 
 Identifier Persistence Considerations:
 
-      Once a name has been allocated, it MUST NOT be reallocated for a different purpose.
-      The rules provided for assignments of values within a sub-namespace MUST be constructed so that the meanings of values cannot change.
-      This registration mechanism is not appropriate for naming values whose meanings may change over time.
+ - Once a name has been allocated, it MUST NOT be reallocated for a different purpose.
+ - The rules provided for assignments of values within a sub-namespace MUST be constructed so that the meanings of values cannot change.
+ - This registration mechanism is not appropriate for naming values whose meanings may change over time.
 
 Process of Identifier Assignment:
 
-      Namespace with type "ext" (e.g., "urn:ietf:params:whep:ext") is reserved for IETF-approved whep specifications.
+- Namespace with type "ext" (e.g., "urn:ietf:params:whep:ext") is reserved for IETF-approved WHEP specifications.
 
 Process of Identifier Resolution:
 
-      None specified.
+ - None specified.
 
 Rules for Lexical Equivalence:
 
-      No special considerations; the rules for lexical equivalence specified in {{?RFC8141}} apply.
+ - No special considerations; the rules for lexical equivalence specified in {{?RFC8141}} apply.
 
 Conformance with URN Syntax:
 
-      No special considerations.
+ - No special considerations.
 
 Validation Mechanism:
 
-      None specified.
+ - None specified.
 
 Scope:
 
-      Global.
+ - Global.
+
+## Registering WHEP Protocol Extensions URNs
+
+This section defines the process for registering new WHEP protocol extensions URNs with IANA in the "WebRTC-HTTP ingestion protocol (WHEP) URNs" registry (see {{urn-whep-subspace}}). 
+   
+A WHEP Protocol Extension URNs is used as a value in the "rel" attribute of the Link header as defined in {{protocol-extensions}} for the purpose of signaling the WHEP protocol extensions supported by the WHEP endpoints.
+   
+WHEP Protocol Extensions URNs have a "ext" type as defined in {{urn-whep-subspace}}.
+
+###  Registration Procedure
+
+   The IETF has created a mailing list, "wish@ietf.org", which can be used
+   for public discussion of WHEP protocol extensions proposals prior to registration.
+   Use of the mailing list is strongly encouraged. The IESG has
+   appointed a designated expert {{RFC8126}} who will monitor the
+   wish@ietf.org mailing list and review registrations.
+
+   Registration of new "ext" type URNs (in the namespace "urn:ietf:params:whep:ext") belonging to a WHEP Protocol Extension MUST be documented in a permanent and readily available public specification, in sufficient detail so that interoperability between independent implementations is possible and reviewed by the designated expert as per Section 4.6 of {{!BCP26}} .
+   An RFC is REQUIRED for the registration of new value data types that modify existing properties.
+   An RFC is also REQUIRED for registration of WHEP Protocol Extensions URNs that modify WHEP Protocol Extensions previously documented in an existing RFC.
+
+   The registration procedure begins when a completed registration template, defined in the sections below, is sent to iana@iana.org.
+   Decisions made by the designated expert can be appealed to an Applications and Real Time (ART) Area Director, then to the IESG.
+   The normal appeals procedure described in {{!BCP9}} is to be followed. 
+   
+   Once the registration procedure concludes successfully, IANA creates
+   or modifies the corresponding record in the WHEP Protocol Extension registry.
+
+   An RFC specifying one or more new WHEP Protocol Extension URNs MUST include the
+   completed registration templates, which MAY be expanded with
+   additional information. These completed templates are intended to go
+   in the body of the document, not in the IANA Considerations section.
+   The RFC MUST include the syntax and semantics of any extension-specific attributes that may be provided in a Link header
+   field advertising the extension.
+
+### Guidance for Designated Experts
+
+The Designated Expert (DE) is expected to ascertain the existence of suitable documentation (a specification) as described in {{RFC8126}} and to verify that the document is permanently and publicly available. 
+
+The DE is also expected to check the clarity of purpose and use of the requested registration.
+
+Additionally, the DE must verify that any request for one of these registrations has been made available for review and comment within the IETF: the DE will post the request to the WebRTC Ingest Signaling over HTTPS (wish) Working Group mailing list (or a successor mailing list designated by the IESG). 
+
+If the request comes from within the IETF, it should be documented in an Internet-Draft. Lastly, the DE must ensure that any other request for a code point does not conflict with work that is active or already published within the IETF.
+
+###  WHEP Protocol Extension Registration Template
+
+A WHEP Protocol Extension URNs is defined by completing the following template:
+
+ -   URN: A unique URN for the WHEP Protocol Extension.
+ -   Reference: A formal reference to the publicly available specification
+ -   Name: A descriptive name of the WHEP Protocol Extension extension.
+ -   Description: A brief description of the function of the extension, in a short paragraph or two.
+ -   Contact information: Contact information for the organization or person making the registration.
+
 
 # Acknowledgements
 
