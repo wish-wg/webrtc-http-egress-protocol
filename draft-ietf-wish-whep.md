@@ -108,7 +108,7 @@ In order to set up a streaming session, the WHEP player MUST generate an SDP off
 
 The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC8829}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session.
 
-As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "recvonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
+As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
 
 If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp", the WHEP endpoint MUST reject the HTTP POST request with a "415 Unsupported Media Type" error response. If the SDP body is malformed, the WHIP session MUST reject the HTTP POST with a "400 Bad Request" error response. 
 
