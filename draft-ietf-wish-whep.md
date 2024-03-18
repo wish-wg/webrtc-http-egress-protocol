@@ -398,7 +398,7 @@ WHEP endpoints and sessions MAY require the HTTP request to be authenticated usi
 
 The nature, syntax, and semantics of the bearer token, as well as how to distribute it to the client, is outside the scope of this document. Some examples of the kind of tokens that could be used are, but are not limited to, JWT tokens as per {{!RFC6750}} and {{!RFC8725}} or a shared secret stored on a database. The tokens are typically made available to the end user alongside the WHEP endpoint URL and configured on the WHEP players (similar to the way RTMP URLs and Stream Keys are distributed).
 
-WHEP endpoints and sessions could perform the authentication and authorization by encoding an authentication token within the URLs for the WHEP endpoints or sessions instead. In case the WHEP player is not configured to use a bearer token, the HTTP Authorization header field must not be sent in any request.
+WHEP endpoints and sessions could perform the authentication and authorization by encoding an authentication token within the URLs for the WHEP endpoints or sessions instead. In case the WHEP player is not configured to use a bearer token, the HTTP Authorization header field MUST NOT be sent in any request.
 
 ## Protocol extensions
 
@@ -471,7 +471,7 @@ The event is sent by the WHEP Resource when an active publication for the WHEP r
 - event data: JSON object (TBD)
 
 #### inactive event
-The event is sent by the WHEP Resource when an active publication is no longer available. The WHEP Resource MUST not send an initial "inactive" event if there is no active publication when the resource is created.
+The event is sent by the WHEP Resource when an active publication is no longer available. The WHEP Resource MUST NOT send an initial "inactive" event if there is no active publication when the resource is created.
 
 - event name: "active"
 - event data: JSON object (TBD)
