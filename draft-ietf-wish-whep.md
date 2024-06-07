@@ -437,7 +437,7 @@ Content-Type: application/sdp
 Location: https://whep.example.org/resource/213786HF
 Link: <https://whep.ietf.org/resource/213786HF/sse>;
       rel="urn:ietf:params:whep:ext:core:server-sent-events"
-      events="active,inactive,layers,viewercount"
+      events="active,inactive,layers,reconnect,viewercount"
 ~~~~~
 {: title="HTTP 201 response example containing the Server Sent Events extension"}
 
@@ -448,7 +448,7 @@ POST /resource/213786HF/sse HTTP/1.1
 Host: whep.example.com
 Content-Type: application/sjon
 
-["active","inactive","layers","viewercount"]
+["active","inactive","layers","reconnect","viewercount"]
 
 HTTP/1.1 201 Created
 Location: https://whep.example.org/resource/213786HF/sse/event-stream
@@ -464,6 +464,7 @@ The events types supported by this specification are the following:
 - active: indicating that there is an active publication ongoing for this resource.
 - inactive: indicating that there is no active publication ongoing for this resource.
 - layers: provides information about the video layers being published for this resource.
+- reconnect: trigger the WHEP player to reconnect to the WHEP resource by re-initiate a WHEP protocol process.
 - viewercount: provides the number of viewers currently connected to this resource.
 
 The WHEP resource must indicate the event type in the "event" field and a JSON serialized string in the "data" field of the WHATWG server sent events message. In order to make the processing simpler on the WHEP player, the WHEP resource MUST encode the event data in a single "data" line.
@@ -559,6 +560,17 @@ The "layer" object MUST containt at least one of the encodingId, spatialLayerId 
 }
 ~~~~~
 {: title="Example event"}
+
+#### Reconnect event
+ The reconnect event is sent by the WHEP Resource when the following situation occurs:
+
+  - The quality of service of the WHEP Resource declines which affects the quality of experience for end users.
+  - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
+
+ Upon the receipt of the reconnect event, the WHEP player restart a WHEP protocol process by sending the HTTP POST request to the WHEP endpoint URL.
+
+  -  event name: "reconnect"
+  -  event data: JSON object containing the WHEP Endpoint URL used for the WHEP player to restart the WHEP protocol process.
 
 #### viewercount event
 The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
