@@ -32,6 +32,13 @@ normative:
       org: WHATWG
     title: Fetch - Living Standard
     target: https://fetch.spec.whatwg.org
+
+  SCTE35:
+    author:
+      org: ANSI
+    title: Digital Program Insertion Cueing Message
+    target: https://account.scte.org/standards/library/catalog/scte-35-digital-program-insertion-cueing-message
+    
       
 --- abstract
 
@@ -468,6 +475,7 @@ The events types supported by this specification are the following:
 - layers: provides information about the video layers being published for this resource.
 - reconnect: trigger the WHEP player to reconnect to the WHEP resource by re-initiate a WHEP protocol process.
 - viewercount: provides the number of viewers currently connected to this resource.
+- scte35: used in the to signal a local ad insertion opportunity in the media streams.
 
 The WHEP resource must indicate the event type in the "event" field and a JSON serialized string in the "data" field of the WHATWG server sent events message. In order to make the processing simpler on the WHEP player, the WHEP resource MUST encode the event data in a single "data" line.
 
@@ -579,11 +587,10 @@ It may be sent by the WHEP Resource when the following situation occurs:
 Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{#playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{#playback-session-termination}}.
 
 ~~~~~
-{
-  "url": "https://whep-backup.example.com/whep/endpoint/"
-}
+event: reconnect
+data: {"url": "https://whep-backup.example.com/whep/endpoint/"}
 ~~~~~
-{: title="Reconnect example JSON event data"}
+{: title="reconnect example event"}
 
 #### viewercount event
 The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
@@ -592,6 +599,22 @@ The event is sent by the WHEP Resource to provide the WHIP Player the informatio
 - event data: JSON object containing a "viewercount" attribute with a Number value indicating the number of viewers currently watching the WHIP resource.
 
 The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
+
+#### scte35 event
+ 
+"Digital Program Insertion Cueing Message for Cable" {{SCTE35}}, is the core signaling standard for advertising, Program and distribution control (e.g., blackouts) of content for content providers and content distributors. SCTE 35 signals can be used to identify advertising breaks, advertising content, and programming content.
+
+This event is mainly sent by the WHEP resource to indicate ad insertion opportunities for the WHEP player.
+
+- event name: "scte35"
+- event data: Base URL 64 serializaton of an SCTE35 message as defined in {{SCTE35}}.
+
+~~~~~
+event: scte35
+data: /DA8AAAAAAAAAP///wb+06ACpQAmAiRDVUVJAACcHX//AACky4AMEERJU0NZTVdGMDQ1MjAwMEgxAQEMm4c0
+~~~~~
+{: title="SCTE35 example event"}
+
 
 ### Video Layer Selection extension
 
