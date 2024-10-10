@@ -493,13 +493,25 @@ All the event streams associated with a WHEP Resource MUST be destroyed when the
 The event is sent by the WHEP Resource when an active publication for the WHEP resource, either at the begining of the playback when the resource is created or later during the playback session.
 
 - event name: "active"
-- event data: JSON object (TBD)
+- event data: Empty JSON object, could be be enhanced in future versions of the specification.
+
+~~~~~
+event: active
+data: {}
+~~~~~
+{: title="active example event"}
 
 #### inactive event
 The event is sent by the WHEP Resource when an active publication is no longer available. The WHEP Resource MUST NOT send an initial "inactive" event if there is no active publication when the resource is created.
 
-- event name: "active"
-- event data: JSON object (TBD)
+- event name: "inactive"
+- event data:  Empty JSON object, could be be enhanced in future versions of the specification.
+
+~~~~~
+event: inactive
+data: {}
+~~~~~
+{: title="inactive example event"}
 
 #### layers event
 The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in Chapter {TBD}.
@@ -600,6 +612,12 @@ The event is sent by the WHEP Resource to provide the WHIP Player the informatio
 
 The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
 
+~~~~~
+event: viewercount
+data: {"viewercount":3}
+~~~~~
+{: title="viewercount example event"}
+
 #### scte35 event
  
 "Digital Program Insertion Cueing Message for Cable" {{SCTE35}}, is the core signaling standard for advertising, Program and distribution control (e.g., blackouts) of content for content providers and content distributors. SCTE 35 signals can be used to identify advertising breaks, advertising content, and programming content.
@@ -613,8 +631,7 @@ This event is mainly sent by the WHEP resource to indicate ad insertion opportun
 event: scte35
 data: /DA8AAAAAAAAAP///wb+06ACpQAmAiRDVUVJAACcHX//AACky4AMEERJU0NZTVdGMDQ1MjAwMEgxAQEMm4c0
 ~~~~~
-{: title="SCTE35 example event"}
-
+{: title="scte35 example event"}
 
 ### Video Layer Selection extension
 
