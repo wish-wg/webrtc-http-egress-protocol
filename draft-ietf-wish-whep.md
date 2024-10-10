@@ -446,7 +446,7 @@ Content-Type: application/sdp
 Location: https://whep.example.org/resource/213786HF
 Link: <https://whep.ietf.org/resource/213786HF/sse>;
       rel="urn:ietf:params:whep:ext:core:server-sent-events"
-      events="active,inactive,layers,reconnect,viewercount"
+      events="active,inactive,layers,reconnect,viewercount,scte35"
 ~~~~~
 {: title="HTTP 201 response example containing the Server Sent Events extension"}
 
@@ -455,7 +455,7 @@ If the extension is also supported by the WHEP player, it MAY send a POST reques
 ~~~~~
 POST /resource/213786HF/sse HTTP/1.1
 Host: whep.example.com
-Content-Type: application/sjon
+Content-Type: application/json
 
 ["active","inactive","layers","reconnect","viewercount"]
 
