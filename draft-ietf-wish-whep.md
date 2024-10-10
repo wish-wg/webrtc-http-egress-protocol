@@ -119,7 +119,7 @@ Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returne
 
 The WHIP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHIP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
 
-## Playback session set up
+## Playback session set up  {#playback-session-setup}
 
 In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
 
@@ -243,6 +243,8 @@ In that case, the WHEP endpoint SHALL return a "409 Conflict" response to the PO
 WHEP players MAY periodically try to connect to the WHEP session with exponential backoff period with an initial value of the "Retry-After" header value in the "409 Conflict" response.
 
 Once a session is setup, consent freshness as per {{!RFC7675}} SHALL be used to detect non-graceful disconnection by full ICE implementations and DTLS teardown for session termination by either side.
+
+## Playback session termination {#playback-session-termination}
 
 To explicitly terminate a WHIP session, the WHEP player MUST perform an HTTP DELETE request to the WHEP session URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHIP session will be removed and the resources freed on the media server, terminating the ICE and DTLS sessions.
 
@@ -559,18 +561,29 @@ The "layer" object MUST containt at least one of the encodingId, spatialLayerId 
   }
 }
 ~~~~~
-{: title="Example event"}
+{: title="Layer example JSON event data"}
 
-#### Reconnect event
- The reconnect event is sent by the WHEP Resource when the following situation occurs:
+#### reconnect event
+
+The reconnect event is sent by the WHEP Resource to notify the WHEP player that it should drop the current playback session and reconnect for starting a new one.
+
+  -  event name: "reconnect"
+  -  event data: JSON object optionally containing the WHEP Endpoint URL in an "url" to be used for the WHEP player to restart the WHEP protocol process.
+
+It may be sent by the WHEP Resource when the following situation occurs:
 
   - The quality of service of the WHEP Resource declines which affects the quality of experience for end users.
   - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
+  - The WHEP resource is going to be terminated due to resource management policies.
 
- Upon the receipt of the reconnect event, the WHEP player restart a WHEP protocol process by sending the HTTP POST request to the WHEP endpoint URL.
+Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{#playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{#playback-session-termination}}.
 
-  -  event name: "reconnect"
-  -  event data: JSON object containing the WHEP Endpoint URL used for the WHEP player to restart the WHEP protocol process.
+~~~~~
+{
+  "url": "https://whep-backup.example.com/whep/endpoint/"
+}
+~~~~~
+{: title="Reconnect example JSON event data"}
 
 #### viewercount event
 The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
