@@ -514,74 +514,63 @@ data: {}
 {: title="inactive example event"}
 
 #### layers event
-The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in Chapter {TBD}.
+The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{#video-layer-selection}}.
 
 - event name: "layers"
 - event data: JSON object
 
 The WHEP Resource MAY send the event periodically or just when the layer information has changed.
 
-The event data JSON object contains the video layer information available for each "m-line" indexed by the "m-line" order in the SDP.
+The event data JSON object contains the video layers information available for each "m-line" indexed by the "m-line" order in the SDP. Each "m-line" value contains and array of layer" JSON objects, which each element contains the following information:
 
-Each value of the JSON object entries will be a JSON object with the following attributes
+- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 #rfc9429}}.
+- spatialLayerId: (Number) the spatial layer id.
+- temporalLayerId: (Number) the temporal layer id .
+- bitrate: (Number) the current bitrate.
+- targetBitrate: (Number) the target encoding bitrate.
+- width: (Number) the current video width.
+- heigth: (Number) the current video height.
+- targetBitrate: (Number) the target encoding bitrate.
 
-- active: (Array&lt;Object&gt;) Containing the information of the active simulcast layers.
-- inactive: (Array&lt;Object&gt;) Containing the information of the inactive simulcast layers.
-- layers: (Array&lt;Object&gt;) Containing the information of the active simulcast, spatials or temporal layers available for layer selection.
+The "layer" object MUST containt at least one of the rid, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL. A layer is considered inactive if the bitrate attribute is 0 or not set.
 
-Each "active" JSON objet contains the following information:
+~~~~~
+{
+  "0": [
+      { "rid": "2", "spatialLayerId": 0, "temporalLayerId": 1, "targetBitrate": 2000000, width: 1280, height: 720 },
+      { "rid": "2", "spatialLayerId": 0, "temporalLayerId": 0, "targetBitrate": 1000000, width: 1280, height: 720 },
+      { "rid": "1", "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112, "targetBitrate": 572000, width: 640, height: 360 },
+      { "rid": "1", "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592, "targetBitrate": 380000, width: 640, height: 360 },
+      { "rid": "0", "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, "targetBitrate": 128000, width: 320, height: 180 },
+      { "rid": "0", "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , "targetBitrate": 640000, width: 320, height: 180 }
+    ]
+}
+~~~~~
+{: title="Layer example JSON event data using simulcast and temporal scalability with highest encoding layer inactive"}
 
-- id: (String) rid value of the simulcast encoding of the layer
-- simulcastIdx: (Number) the simulcast order of the encoding layer.
-- bitrate: (Number) the spatial layer id of the encoding layer.
-- width: (Number) the current video with of the encoding layer.
-- heigth: (Number) the current video height of the encoding layer.
- 
-Each "inactive" JSON contains the following information:
-
-- id: (String) rid value of the simulcast encoding of the layer.
-- simulcastIdx: (Number) the simulcast order of the encoding layer.
-- width: (Number) the current video with of the encoding layer
-- heigth: (Number) the current video height of the encoding layer.
- 
-Each "layer" JSON contains the following information:
-
-- encodingId: (String) rid value of the simulcast encoding of the layer
-- simulcastIdx: (Number) the simulcast order of the encoding layer.
-- spatialLayerId: (Number) the spatial layer id of the encoding layer.
-- temporalLayerId: (Number) the temporal layer id of the encoding layer.
-- bitrate: (Number) the spatial layer id of the encoding layer.
-- width: (Number) the current video with of the encoding layer.
-- heigth: (Number) the current video height of the encoding layer.
-
-The "layer" object MUST containt at least one of the encodingId, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL.
+~~~~~
+{
+  "0": [
+      { "spatialLayerId": 1, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
+      { "spatialLayerId": 1, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
+      { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
+      { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
+    ]
+}
+~~~~~
+{: title="Layer example JSON event data using SVC"}
 
 ~~~~~
 {
   "0": {
-    "active": [
-      {
-        "id": "1", "simulcastIdx": 1, "bitrate": 538288, width: 640, height: 360
-      },
-      {
-        "id": "0", "simulcastIdx": 0, "bitrate": 111600, width: 320, height: 180
-      }
-    ],
-    "inactive": [
-      {
-        "id": "2", "simulcastIdx": 2
-      },
-    ],
-    "layers": [
-      { "encodingId": "1", "simulcastIdx": 1, "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
-      { "encodingId": "1", "simulcastIdx": 1, "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
-      { "encodingId": "0", "simulcastIdx": 0, "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
-      { "encodingId": "0", "simulcastIdx": 0, "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
+      { "spatialLayerId": 1, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
+      { "spatialLayerId": 1, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
+      { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
+      { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
     ]
-  }
 }
 ~~~~~
-{: title="Layer example JSON event data"}
+{: title="Layer example JSON event data using SVC"}
 
 #### reconnect event
 
@@ -633,7 +622,7 @@ data: /DA8AAAAAAAAAP///wb+06ACpQAmAiRDVUVJAACcHX//AACky4AMEERJU0NZTVdGMDQ1MjAwME
 ~~~~~
 {: title="scte35 example event"}
 
-### Video Layer Selection extension
+### Video Layer Selection extension {#video-layer-selection}
 
 The Layer Selection extensions allows the WHEP player to control which video layer or rendition is being delivered through the negotiated video MediaStreamTrack. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:layer" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Video Layer Selection REST API entrypoint. If this extension is supported by the WHEP Resource, the Server Sent Events extension MUST be supported as well and the "layers" event MUST be advertised as well.
 
