@@ -438,7 +438,7 @@ In the first version of the WHEP specification, two optional extensions are defi
 
 ### Server Sent Events extension
 
-This optional extesion provides support for server-to-client communication using WHATWG server sent events protocol as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:server-sent-events" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Server Sent Events REST API entrypoint. The "Link" header field MAY also contain an "events" attribute with a coma separated list of supported event types. 
+This optional extension provides support for server-to-client communication using WHATWG server sent events protocol as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:server-sent-events" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Server Sent Events REST API entrypoint. The "Link" header field MAY also contain an "events" attribute with a coma separated list of supported event types. 
 
 ~~~~~
 HTTP/1.1 201 Created
@@ -761,7 +761,18 @@ The "WebRTC-HTTP egress protocol (WHEP) Extension URNs" is used to manage entrie
 
    - Field names: URI, description, change controller, reference and IANA registry reference
      
+Initial values for the WebRTC-HTTP egress protocol (WHEP) extension URNs registry are given below:
 
+ -   URN: urn:ietf:params:whep:ext:core:layer
+ -   Reference: (RFC TBD)
+ -   Description: Layer Selection protocol extension
+ -   Change Controller: IETF
+
+ -   URN: urn:ietf:params:whep:ext:core:server-sent-events
+ -   Reference: (RFC TBD)
+ -   Description: Server Sent Events protocol extension
+ -   Change Controller: IETF
+    
 ## URN Sub-namespace for WHEP {#urn-whep-subspace}
 
 WHEP endpoint utilizes URNs to identify the supported WHEP protocol extensions on the "rel" attribute of the Link header as defined in {{protocol-extensions}}.
@@ -886,7 +897,6 @@ A WHEP Protocol Extension URNs is defined by completing the following template:
 
  -   URN: A unique URN for the WHEP Protocol Extension.
  -   Reference: A formal reference to the publicly available specification
- -   Name: A descriptive name of the WHEP Protocol Extension.
  -   Description: A brief description of the function of the extension, in a short paragraph or two
  -   Contact information: Contact information for the organization or person making the registration
 
