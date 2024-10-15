@@ -633,6 +633,25 @@ data: /DA8AAAAAAAAAP///wb+06ACpQAmAiRDVUVJAACcHX//AACky4AMEERJU0NZTVdGMDQ1MjAwME
 ~~~~~
 {: title="scte35 example event"}
 
+### Events over WebRTC datachannel
+
+In some architectures sending events over a long polled HTTP request from a server that isn't the media server may be costly, such servers may support events over the webRTC datachannel.
+The protocol is identical to the above, with the following exceptions:
+
+- If both the SDP offer and the SDP answer contain an application section this indicates that Datachannel events are supported.
+~~~~~
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+~~~~~
+- If the client then opens a reliable datachannel with a label that matches the URI of the sse Location: the server MUST send events as messages over this datachannel in the format described above.
+- The client may then listen for events on the datachannel instead of using the (similar) server-sent-events API
+
+This option can reduce resource consumption in 2 ways:
+- internal message passing within the server cluster since the events typically originate in the media server not the web server
+- port consumption, since the datachannel is multiplexed on the same port tuple as the media.
+
+It is also likely to be more timely than long polling.
+
+
 ### Video Layer Selection extension
 
 The Layer Selection extensions allows the WHEP player to control which video layer or rendition is being delivered through the negotiated video MediaStreamTrack. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:layer" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Video Layer Selection REST API entrypoint. If this extension is supported by the WHEP Resource, the Server Sent Events extension MUST be supported as well and the "layers" event MUST be advertised as well.
