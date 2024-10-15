@@ -643,11 +643,13 @@ In case that Simulcast or Scalable Video Codecs are supported by the Media Serve
 The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
 
 - mediaId: (String) m-line index to apply the layer selection(default: first video m-line)
-- encodingId: (String)  rid value of the simulcast encoding of the track (default: automatic selection)
+- rid: (String)  rid value of the simulcast encoding of the track (default: automatic selection)
 - spatialLayerId: (Number) The spatial layer id to send to the outgoing stream (default: max layer available)
 - temporalLayerId: (Number) The temporaral layer id to send to the outgoing stream (default: max layer available)
 - maxSpatialLayerId: (Number) Max spatial layer id (default: unlimited)
 - maxTemporalLayerId: (Number) Max temporal layer id (default: unlimited)
+- maxWidth: (Number) Max width of the layer (default: unlimited)
+- maxHeight: (Number) Max height of the layer (default: unlimited)
 
 The information about the avialable encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
 
@@ -656,19 +658,19 @@ POST /resource/213786HF/layer HTTP/1.1
 Host: whep.example.com
 Content-Type: application/sjon
 
-{mediaId:"0", "encodingId": "hd"}
+{mediaId:"0", "rid": "hd"}
 
 HTTP/1.1 200 OK
 ~~~~~
 
-If the WHEP player wishes to return to the default selection performed by the Media Server, it just need to send an empty JSON Object instead:
+If the WHEP player wishes to return to the default selection performed by the Media Server, it just need to send an JSON Object removing the constrains for the layer:
 
 ~~~~~
 POST /resource/213786HF/layer HTTP/1.1
 Host: whep.example.com
 Content-Type: application/sjon
 
-{}
+{mediaId:"0"}
 
 HTTP/1.1 200 OK
 ~~~~~
