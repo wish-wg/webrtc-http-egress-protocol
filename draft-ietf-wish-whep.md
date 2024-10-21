@@ -115,7 +115,7 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 - WHEP endpoint: Responds with a "201 Created" message containing an SDP answer.
 - WHEP player and media server: Establish an ICE and DTLS sessions for NAT traversal and secure communication.
 - RTP/RTCP Flow: Real-time Transport Protocol and Real-time Transport Control Protocol flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
-- WHEP player: Sends an HTTP DELETE to terminate the WHIP session.
+- WHEP player: Sends an HTTP DELETE to terminate the WHEP session.
 - WHEP session: Responds with a "200 OK" to confirm the session termination.
 
 # Protocol Operation
@@ -124,7 +124,7 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 
 Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHRP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
 
-The WHIP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHIP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
+The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
 
 ## Playback session set up  {#playback-session-setup}
 
@@ -134,7 +134,7 @@ The HTTP POST request MUST have a content type of "application/sdp" and contain 
 
 As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
 
-Following {{sdp-exchange-example}} is an example of an HTTP POST sent from a WHEP player to a WHEP endpoint and the "201 Created" response from the WHIP endpoint containing the Location header pointing to the newly created WHEP session:
+Following {{sdp-exchange-example}} is an example of an HTTP POST sent from a WHEP player to a WHEP endpoint and the "201 Created" response from the WHEP endpoint containing the Location header pointing to the newly created WHEP session:
 
 ~~~~~
 POST /whep/endpoint HTTP/1.1
@@ -253,7 +253,7 @@ Once a session is setup, consent freshness as per {{!RFC7675}} SHALL be used to 
 
 ## Playback session termination {#playback-session-termination}
 
-To explicitly terminate a WHIP session, the WHEP player MUST perform an HTTP DELETE request to the WHEP session URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHIP session will be removed and the resources freed on the media server, terminating the ICE and DTLS sessions.
+To explicitly terminate a WHEP session, the WHEP player MUST perform an HTTP DELETE request to the WHEP session URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHEP session will be removed and the resources freed on the media server, terminating the ICE and DTLS sessions.
 
 A media server terminating a session MUST follow the procedures in {{Section 5.2 of !RFC7675}}  for immediate revocation of consent.
 
@@ -271,7 +271,7 @@ Trickle ICE and ICE restart support are RECOMMENDED for both WHEP sessions and c
 
 ### HTTP PATCH request usage {#http-patch-usage}
 
-The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHIP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHIP session MUST reject the HTTP PATCH with an appropiate 4XX error response.
+The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropiate 4XX error response.
 
 If the WHEP session supports either Trickle ICE or ICE restarts, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}. 
 
@@ -296,7 +296,7 @@ WHEP players generating the HTTP PATCH body with the SDP fragment and its subseq
  - As per {{!RFC9429}}, only m-sections not marked as bundle-only can gather ICE candidates, so given that the "max-bundle" policy is being used, the SDP fragment will contain only the offerer-tagged m-line of the bundle group.
  - The WHEP player MAY exclude ICE candidates from the HTTP PATCH body if they have already been confirmed by the WHEP session with a successful HTTP response to a previous HTTP PATCH request.
 
-WHIP sessions and players that support Trickle ICE MUST make use of entity-tags and conditional requests as explained in {{http-patch-usage}}.
+WHEP sessions and players that support Trickle ICE MUST make use of entity-tags and conditional requests as explained in {{http-patch-usage}}.
 
 When a WHEP session receives a PATCH request that adds new ICE candidates without performing an ICE restart, it MUST return a "204 No Content" response without a body and MUST NOT include an ETag header in the response. If the WHEP session does not support a candidate transport or is not able to resolve the connection address, it MUST silently discard the candidate and continue processing the rest of the request normally.
 
@@ -594,10 +594,10 @@ data: {"url": "https://whep-backup.example.com/whep/endpoint/"}
 {: title="reconnect example event"}
 
 #### viewercount event
-The event is sent by the WHEP Resource to provide the WHIP Player the information of number of viewers currently connected to this resource.
+The event is sent by the WHEP Resource to provide the WHEP Player the information of number of viewers currently connected to this resource.
 
 - event name: "viewercount"
-- event data: JSON object containing a "viewercount" attribute with a Number value indicating the number of viewers currently watching the WHIP resource.
+- event data: JSON object containing a "viewercount" attribute with a Number value indicating the number of viewers currently watching the WHEP resource.
 
 The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
 
@@ -689,12 +689,12 @@ On top of that, the WHEP protocol exposes a thin new attack surface specific of 
 - HTTP POST flooding and resource exhaustion:
   It would be possible for an attacker in possession of authentication credentials valid for watching a WHEP stream to make multiple HTTP POST to the WHEP endpoint.
   This will force the WHEP endpoint to process the incoming SDP and allocate resources for being able to setup the DTLS/ICE connection.
-  While the malicious client does not need to initiate the DTLS/ICE connection at all, the WHIP session will have to wait for the DTLS/ICE connection timeout in order to release the associated resources.
+  While the malicious client does not need to initiate the DTLS/ICE connection at all, the WHEP session will have to wait for the DTLS/ICE connection timeout in order to release the associated resources.
   If the connection rate is high enough, this could lead to resource exhaustion on the servers handling the requests and it will not be able to process legitimate incoming ingests.
   In order to prevent this scenario, WHEP endpoints SHOULD implement a rate limit and avalanche control mechanism for incoming initial HTTP POST requests.
 
 - Insecure direct object references (IDOR) on the WHEP session locations:
-  If the URLs returned by the WHIP endpoint for the WHEP sessions location are easy to guess, it would be possible for an attacker to send multiple HTTP DELETE requests and terminate all the WHEP sessions currently running.
+  If the URLs returned by the WHEP endpoint for the WHEP sessions location are easy to guess, it would be possible for an attacker to send multiple HTTP DELETE requests and terminate all the WHEP sessions currently running.
   In order to prevent this scenario, WHEP endpoints SHOULD generate URLs with enough randomness, using a cryptographically secure pseudorandom number generator following the best practices in Randomness Requirements for Security {{!RFC4086}}, and implement a rate limit and avalanche control mechanism for HTTP DELETE requests.
   The security considerations for Universally Unique IDentifier (UUID) {{!RFC9562, Section 6}} are applicable for generating the WHEP sessions location URL.
 
