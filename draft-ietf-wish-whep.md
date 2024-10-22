@@ -122,7 +122,7 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 
 ## HTTP usage {#http-usage}
 
-Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHRP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
+Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
 
 The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
 
