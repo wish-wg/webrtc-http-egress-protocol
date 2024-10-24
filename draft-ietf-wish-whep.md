@@ -283,7 +283,7 @@ Missing or outdated ETags in the PATCH requests from WHEP players  will be answe
 
 ### Trickle ICE {#trickle-ice}
 
-Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, or it MAY only contain local candidates (or even an empty list of candidates) as per {{!RFC8845}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer as soon as possible, containing either locally gathered ICE candidates or an empty list of candidates.
+Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, it MAY only contain local candidates as per {{!RFC8845}} or even an empty list of candidates as per {{!RFC8863}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer as soon as possible, containing either locally gathered ICE candidates or an empty list of candidates.
 
 In order to simplify the protocol, the WHEP session cannot signal additional ICE candidates to the WHEP player after the SDP answer has been sent. The WHEP endpoint SHALL gather all the ICE candidates for the media server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the media server.
 
