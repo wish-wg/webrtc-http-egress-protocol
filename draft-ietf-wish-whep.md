@@ -514,7 +514,7 @@ data: {}
 {: title="inactive example event"}
 
 #### layers event
-The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{#video-layer-selection}}.
+The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{video-layer-selection}}.
 
 - event name: "layers"
 - event data: JSON object
@@ -523,7 +523,7 @@ The WHEP Resource MAY send the event periodically or just when the layer informa
 
 The event data JSON object contains the video layers information available for each "m-line" indexed by the "m-line" order in the SDP. Each "m-line" value contains and array of layer" JSON objects, which each element contains the following information:
 
-- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 #rfc9429}}.
+- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 of !RFC9429}}.
 - spatialLayerId: (Number) the spatial layer id.
 - temporalLayerId: (Number) the temporal layer id .
 - bitrate: (Number) the current bitrate.
@@ -585,7 +585,7 @@ It may be sent by the WHEP Resource when the following situation occurs:
   - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
   - The WHEP resource is going to be terminated due to resource management policies.
 
-Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{#playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{#playback-session-termination}}.
+Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{playback-session-termination}}.
 
 ~~~~~
 event: reconnect
