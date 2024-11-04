@@ -122,7 +122,7 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 
 ## HTTP usage {#http-usage}
 
-Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHRP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
+Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
 
 The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
 
@@ -283,7 +283,7 @@ Missing or outdated ETags in the PATCH requests from WHEP players  will be answe
 
 ### Trickle ICE {#trickle-ice}
 
-Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, or it MAY only contain local candidates (or even an empty list of candidates) as per {{!RFC8445}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer as soon as possible, containing either locally gathered ICE candidates or an empty list of candidates.
+Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, it MAY only contain local candidates as per {{!RFC8445}} or even an empty list of candidates as per {{!RFC8863}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer as soon as possible, containing either locally gathered ICE candidates or an empty list of candidates.
 
 In order to simplify the protocol, the WHEP session cannot signal additional ICE candidates to the WHEP player after the SDP answer has been sent. The WHEP endpoint SHALL gather all the ICE candidates for the media server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the media server.
 
@@ -375,7 +375,7 @@ a=end-of-candidates
 ~~~~~
 {: title="Example of an ICE restart request and response" #trickle-restart-example}
 
-{{trickle-ice-example}} demonstrates a Trickle ICE restart procedure example. The WHEP player sends a PATCH request containing updated ICE information, including a new ufrag and password, along with newly gathered ICE candidates. In response, the WHEP session provides ICE information for the session after the ICE restart, including the updated ufrag and password, as well as the previous ICE candidate.
+{{trickle-restart-example}} demonstrates a Trickle ICE restart procedure example. The WHEP player sends a PATCH request containing updated ICE information, including a new ufrag and password, along with newly gathered ICE candidates. In response, the WHEP session provides ICE information for the session after the ICE restart, including the updated ufrag and password, as well as the previous ICE candidate.
 
 ## WebRTC constraints
 
@@ -514,7 +514,7 @@ data: {}
 {: title="inactive example event"}
 
 #### layers event
-The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{#video-layer-selection}}.
+The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{video-layer-selection}}.
 
 - event name: "layers"
 - event data: JSON object
@@ -523,7 +523,7 @@ The WHEP Resource MAY send the event periodically or just when the layer informa
 
 The event data JSON object contains the video layers information available for each "m-line" indexed by the "m-line" order in the SDP. Each "m-line" value contains and array of layer" JSON objects, which each element contains the following information:
 
-- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 #rfc9429}}.
+- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 of !RFC9429}}.
 - spatialLayerId: (Number) the spatial layer id.
 - temporalLayerId: (Number) the temporal layer id .
 - bitrate: (Number) the current bitrate.
@@ -585,7 +585,7 @@ It may be sent by the WHEP Resource when the following situation occurs:
   - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
   - The WHEP resource is going to be terminated due to resource management policies.
 
-Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{#playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{#playback-session-termination}}.
+Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{playback-session-termination}}.
 
 ~~~~~
 event: reconnect
