@@ -383,7 +383,7 @@ To simplify the implementation of WHEP in both players and media servers, WHEP i
 
 ### SDP Bundle
 
-Both the WHEP player and the WHEP endpoint SHALL support {{!RFC9143}} and use "max-bundle" policy as defined in {{!RFC9429}}. The WHEP player and the media server MUST support multiplexed media associated with the BUNDLE group as per {{Section 9 of !RFC9143}}. In addition, per {{!RFC9143}} the WHEP player and media server SHALL use RTP/RTCP multiplexing for all bundled media. In order to reduce the network resources required at the media server, both The WHEP player and WHEP endpoints MUST include the "rtcp-mux-only" attribute in each bundled "m=" sections as per {{Section 3 of !RFC8858}}.
+Both the WHEP player and the WHEP endpoint SHALL support {{!RFC9143}} and use "max-bundle" policy as defined in {{!RFC9429}}. The WHEP player and the media server MUST support multiplexed media associated with the BUNDLE group as per {{Section 9 of !RFC9143}}. In addition, per {{!RFC9143}} the WHEP player and media server SHALL use RTP/RTCP multiplexing {{!RFC8858}} for all bundled media. In order to reduce the network resources required at the media server, both the WHEP player and WHEP endpoints MUST include the "rtcp-mux-only" attribute in each bundled "m=" sections as per {{Section 3 of !RFC8858}}.
 
 ### Single MediaStream
 
