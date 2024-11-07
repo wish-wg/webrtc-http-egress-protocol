@@ -75,27 +75,33 @@ The following diagram illustrates the core operation of the WHEP protocol for in
 
 ~~~~~
                                                                                
- +-------------+    +---------------+ +--------------+ +---------------+
- | WHEP player |    | WHEP endpoint | | Media Server | | WHEP session |
- +--+----------+    +---------+-----+ +------+-------+ +--------|------+
-    |                         |              |                  |       
-    |                         |              |                  |       
-    |HTTP POST (SDP Offer)    |              |                  |       
-    +------------------------>+              |                  |       
-    |201 Created (SDP answer) |              |                  |       
-    +<------------------------+              |                  |       
-    |          ICE REQUEST                   |                  |       
-    +--------------------------------------->+                  |       
-    |          ICE RESPONSE                  |                  |       
-    |<---------------------------------------+                  |       
-    |          DTLS SETUP                    |                  |       
-    |<======================================>|                  |       
-    |          RTP/RTCP FLOW                 |                  |       
-    +<-------------------------------------->+                  |       
-    | HTTP DELETE                                               |       
-    +---------------------------------------------------------->+       
-    | 200 OK                                                    |       
-    <-----------------------------------------------------------x       
+ +-------------+            +---------------+ +--------------+ +---------------+
+ | WHEP player |            | WHEP endpoint | | Media Server | | WHEP session |
+ +--+----------+            +---------+-----+ +------+-------+ +--------|------+
+    |                                 |              |                  |       
+    |                                 |              |                  |       
+    |HTTP POST (Empty body)           |              |                  |       
+    +-------------------------------->+              |                  |       
+    |201 Created (SDP offer in body)  |              |                  | 
+    |    Location: [session]          |              |                  |    
+    +<--------------------------------+              |                  |       
+    |HTTP PATCH [session]                            |                  |
+    [           (SDP answer in body)                 |                  |
+    +------------------------------------------------------------------>+
+    |204 No Content                                  |                  |
+    +<------------------------------------------------------------------+ 
+    |          ICE REQUEST                           |                  |       
+    +<-----------------------------------------------+                  |       
+    |          ICE RESPONSE                          |                  |       
+    |----------------------------------------------->+                  |       
+    |          DTLS SETUP                            |                  |       
+    |<==============================================>|                  |       
+    |          RTP/RTCP FLOW                         |                  |       
+    +<---------------------------------------------->+                  |       
+    | HTTP DELETE                                                       |       
+    +------------------------------------------------------------------>+       
+    | 200 OK                                                            |       
+    <-------------------------------------------------------------------x       
                                                                                
 ~~~~~
 {: title="WHEP session setup and teardown" #whep-protocol-operation}
@@ -106,13 +112,15 @@ The elements in {{whep-protocol-operation}} are described as follows:
 - WHEP endpoint: This denotes the egress server that receives the initial WHEP request.
 - WHEP endpoint URL: Refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
 - Media server: This is the WebRTC Media Server that establishes the media session with the WHEP player and delivers the media to it.
-- WHEP sesion: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
+- WHEP session: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
 - WHEP session URL: Refers to the URL of the WHEP resource allocated by the WHEP endpoint for a specific media session. The WHEP player can send requests to the WHEP session using this URL to modify the session, such as ICE operations or termination.
 
 The {{whep-protocol-operation}} illustrates the communication flow between a WHEP player, WHEP endpoint, media server, and WHEP session. This flow outlines the process of setting up and tearing down an playback session using the WHEP protocol, involving negotiation, ICE for Network Address Translation (NAT) traversal, DTLS and Secure Real-time Transport Protocol (SRTP) for security, and RTP/RTCP for media transport:
 
-- WHEP player: Initiates the communication by sending an HTTP POST with an SDP Offer to the WHEP endpoint.
-- WHEP endpoint: Responds with a "201 Created" message containing an SDP answer.
+- WHEP player: Initiates request to create a WHEP session by sending an HTTP POST with an empty body to the WHEP endpoint.
+- WHEP endpoint: Responds with a "201 Created" message containing an SDP offer and WHEP session URL in HTTP header Location.
+- WHEP player: Updates the WHEP session by sending an HTTP PATCH containing an SDP answer.
+- WHEP session: Responds with a "204 No Content" message.
 - WHEP player and media server: Establish an ICE and DTLS sessions for NAT traversal and secure communication.
 - RTP/RTCP Flow: Real-time Transport Protocol and Real-time Transport Control Protocol flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
 - WHEP player: Sends an HTTP DELETE to terminate the WHEP session.
@@ -122,126 +130,193 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 
 ## HTTP usage {#http-usage}
 
-Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
+Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{!RFC9457}}.
 
 The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
 
 ## Playback session set up  {#playback-session-setup}
 
-In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
+In order to create a streaming session, the WHEP player MUST perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} and MUST have an empty body to the configured WHEP endpoint URL. The HTTP POST request MUST have an Accept header "application/sdp".
 
-The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session. If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropiate 4XX error response. 
+The WHEP endpoint MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP offer as the body, and a Location header field pointing to the newly created WHEP session. If the HTTP POST to the WHEP endpoint does not accept "application/sdp" as content type or the body is not empty the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response.
 
-As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
+The WHEP player MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
 
-Following {{sdp-exchange-example}} is an example of an HTTP POST sent from a WHEP player to a WHEP endpoint and the "201 Created" response from the WHEP endpoint containing the Location header pointing to the newly created WHEP session:
+As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP endpoint SHOULD use "sendonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP player MUST use "recvonly" attribute in the SDP answer. 
+
+Following {{sdp-exchange-example}} is an example of an HTTP POST sent from a WHEP player to a WHEP endpoint and the "201 Created" response from the WHEP endpoint containing the Location header pointing to the newly created WHEP session and the initial SDP offer:
 
 ~~~~~
-POST /whep/endpoint HTTP/1.1
+POST /channel/teeny-tasty-crayon HTTP/1.1
 Host: whep.example.com
-Content-Type: application/sdp
-Content-Length: 1326
-
-v=0
-o=- 5228595038118931041 2 IN IP4 127.0.0.1
-s=-
-t=0 0
-a=group:BUNDLE 0 1
-a=extmap-allow-mixed
-a=ice-options:trickle ice2
-m=audio 9 UDP/TLS/RTP/SAVPF 111
-c=IN IP4 0.0.0.0
-a=rtcp:9 IN IP4 0.0.0.0
-a=ice-ufrag:zjkk
-a=ice-pwd:bP+XJMM09aR8AiX1jdukzR6Y
-a=fingerprint:sha-256 DA:7B:57:DC:28:CE:04:4F:31:79:85:C4:31:67:EB:27:58:29:ED:77:2A:0D:24:AE:ED:AD:30:BC:BD:F1:9C:02
-a=setup:actpass
-a=mid:0
-a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
-a=recvonly
-a=rtcp-mux
-a=rtcp-mux-only
-a=rtpmap:111 opus/48000/2
-a=fmtp:111 minptime=10;useinbandfec=1
-m=video 0 UDP/TLS/RTP/SAVPF 96 97
-c=IN IP4 0.0.0.0
-a=rtcp:9 IN IP4 0.0.0.0
-a=ice-ufrag:zjkk
-a=ice-pwd:bP+XJMM09aR8AiX1jdukzR6Y
-a=fingerprint:sha-256 DA:7B:57:DC:28:CE:04:4F:31:79:85:C4:31:67:EB:27:58:29:ED:77:2A:0D:24:AE:ED:AD:30:BC:BD:F1:9C:02
-a=setup:actpass
-a=mid:1
-a=bundle-only
-a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
-a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
-a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
-a=recvonly
-a=rtcp-mux
-a=rtcp-mux-only
-a=rtcp-rsize
-a=rtpmap:96 VP8/90000
-a=rtcp-fb:96 ccm fir
-a=rtcp-fb:96 nack
-a=rtcp-fb:96 nack pli
-a=rtpmap:97 rtx/90000
-a=fmtp:97 apt=96
+Accept: application/sdp
+Content-Length: 0
 
 HTTP/1.1 201 Created
-ETag: "xyzzy"
 Content-Type: application/sdp
-Content-Length: 1400
-Location: https://whep.example.org/sessions/id
+Content-Length: 3552
+Location: https://whep.example.com/channel/teeny-tasty-crayon/3de3c94a-fc0f-4659-bcaf-8bdebf718457
 
 v=0
-o=- 1657793490019 1 IN IP4 127.0.0.1
+o=- 2438602337097565327 2 IN IP4 127.0.0.1
 s=-
 t=0 0
-a=group:BUNDLE 0 1
-a=extmap-allow-mixed
-a=ice-lite
-a=ice-options:trickle ice2
-m=audio 9 UDP/TLS/RTP/SAVPF 111
+a=msid-semantic: WMS feedbackvideomslabel e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=group:BUNDLE 0 1 2 3
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+a=rtcp:9 IN IP4 0.0.0.0
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=setup:active
+a=mid:0
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:3592962548 cname:feedbackvideocname
+a=ssrc:3592962548 label:feedbackvideolabel
+a=ssrc:3592962548 mslabel:feedbackvideomslabel
+a=ssrc:3592962548 msid:feedbackvideomslabel feedbackvideolabel
+a=rtcp-mux
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
 c=IN IP4 0.0.0.0
 a=rtcp:9 IN IP4 0.0.0.0
-a=ice-ufrag:526be20a538ee422
-a=ice-pwd:2e13dde17c1cb009202f627fab90cbec358d766d049c9697
-a=fingerprint:sha-256 F7:EB:F3:3E:AC:D2:EA:A7:C1:EC:79:D9:B3:8A:35:DA:70:86:4F:46:D9:2D:CC:D0:BC:81:9F:67:EF:34:2E:BD
-a=candidate:1 1 UDP 2130706431 198.51.100.1 39132 typ host
-a=setup:passive
-a=mid:0
-a=bundle-only
-a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=setup:active
+a=mid:1
 a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
 a=rtcp-mux
-a=rtcp-mux-only
-a=rtcp-rsize
+a=sctpmap:5000 webrtc-datachannel 262144
+m=audio 9 RTP/SAVPF 111
+c=IN IP4 0.0.0.0
 a=rtpmap:111 opus/48000/2
 a=fmtp:111 minptime=10;useinbandfec=1
-a=msid:- d46fb922-d52a-4e9c-aa87-444eadc1521b
-m=video 0 UDP/TLS/RTP/SAVPF 96 97
-c=IN IP4 0.0.0.0
 a=rtcp:9 IN IP4 0.0.0.0
-a=ice-ufrag:526be20a538ee422
-a=ice-pwd:2e13dde17c1cb009202f627fab90cbec358d766d049c9697
-a=fingerprint:sha-256 F7:EB:F3:3E:AC:D2:EA:A7:C1:EC:79:D9:B3:8A:35:DA:70:86:4F:46:D9:2D:CC:D0:BC:81:9F:67:EF:34:2E:BD
-a=candidate:1 1 UDP 2130706431 198.51.100.1 39132 typ host
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:8 c9:params:rtp-hdrext:info
+a=setup:active
+a=mid:2
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:2338673210 cname:0p6mZhWJw+/818iW
+a=ssrc:2338673210 label:2fcad988-9bc2-4705-b408-9aee41bc3d71
+a=ssrc:2338673210 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:2338673210 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 2fcad988-9bc2-4705-b408-9aee41bc3d71
+a=rtcp-mux
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+a=rtcp:9 IN IP4 0.0.0.0
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=setup:active
+a=mid:3
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:755359452 cname:0p6mZhWJw+/818iW
+a=ssrc:755359452 label:d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:755359452 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:755359452 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:280880788 cname:0p6mZhWJw+/818iW
+a=ssrc:280880788 label:d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:280880788 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:280880788 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc-group:FID 755359452 280880788
+a=rtcp-mux
+
+PATCH /channel/teeny-tasty-crayon/3de3c94a-fc0f-4659-bcaf-8bdebf718457
+Host: whep.example.com
+Content-Type: application/sdp
+Content-Length: 2410
+
+v=0
+o=- 4541478638207698795 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1 2 3
+a=msid-semantic: WMS
+m=video 56464 RTP/SAVPF 100 96
+c=IN IP4 192.168.167.137
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:170904481 1 udp 2122129151 192.168.167.137 56464 typ host generation 0 network-id 1 network-cost 10
+a=candidate:3499970512 1 udp 2122265343 fd2e:9c8b:abe4:2:838:1bbe:9d48:3ec 53930 typ host generation 0 network-id 3 network-cost 10
+a=candidate:3061500384 1 udp 2122197247 2001:9b1:28fe:9400:88fb:57a4:5888:153b 62309 typ host generation 0 network-id 2 network-cost 10
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:0
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
 a=setup:passive
 a=mid:1
-a=bundle-only
-a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
-a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
-a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
-a=sendonly
+a=sctp-port:5000
+m=audio 9 RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:2
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=recvonly
 a=rtcp-mux
-a=rtcp-mux-only
-a=rtcp-rsize
-a=rtpmap:96 VP8/90000
-a=rtcp-fb:96 ccm fir
-a=rtcp-fb:96 nack
-a=rtcp-fb:96 nack pli
-a=rtpmap:97 rtx/90000
-a=fmtp:97 apt=96
-a=msid:- d46fb922-d52a-4e9c-aa87-444eadc1521b
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:3
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:100 VP8/90000
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
 ~~~~~
 {: title="Example of SDP offer/answer exchange done via an HTTP POST" #sdp-exchange-example}
 
