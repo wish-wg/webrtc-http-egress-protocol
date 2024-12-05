@@ -122,15 +122,15 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 
 ## HTTP usage {#http-usage}
 
-Following {{?BCP56}} guidelines, WHEP palyers MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
+Following {{?BCP56}} guidelines, WHEP players MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
 
-The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX sucessfull response with no content when a GET request is received.
+The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX successful response with no content when a GET request is received.
 
 ## Playback session set up  {#playback-session-setup}
 
 In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
 
-The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session. If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropiate 4XX error response. 
+The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session. If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response. 
 
 As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
 
@@ -464,9 +464,9 @@ Location: https://whep.example.org/resource/213786HF/sse/event-stream
 ~~~~~
 {: title="HTTP POST request to create a server-to-client event stream"}
 
-Once the server-to-client communication channel has been created the WHEP player can perform a long pull using the Url returned on the location header as expecified in the WHATWG server sent events protocol.
+Once the server-to-client communication channel has been created the WHEP player can perform a long pull using the Url returned on the location header as specified in the WHATWG server sent events protocol.
 
-When an event is generated, the WHEP Resource MUST check for each event stream if the type is on the list provided by the WHEP player when the event stream was created, and if so enque it for delivering when an active long pull request is available.
+When an event is generated, the WHEP Resource MUST check for each event stream if the type is on the list provided by the WHEP player when the event stream was created, and if so enqueue it for delivering when an active long pull request is available.
 
 The events types supported by this specification are the following:
 
@@ -490,7 +490,7 @@ The WHEP player MAY destroy the event stream at anytime by sending a HTTP DELETE
 All the event streams associated with a WHEP Resource MUST be destroyed when the WHEP Resource is terminated.
 
 #### active event
-The event is sent by the WHEP Resource when an active publication for the WHEP resource, either at the begining of the playback when the resource is created or later during the playback session.
+The event is sent by the WHEP Resource when an active publication for the WHEP resource, either at the beginning of the playback when the resource is created or later during the playback session.
 
 - event name: "active"
 - event data: Empty JSON object, could be be enhanced in future versions of the specification.
@@ -514,7 +514,7 @@ data: {}
 {: title="inactive example event"}
 
 #### layers event
-The event is sent by the WHEP Resource to provide information to the WHEP player about the avialable video layers or renditions to be used in conjuction with the Layer Selection extension defined in {{video-layer-selection}}.
+The event is sent by the WHEP Resource to provide information to the WHEP player about the available video layers or renditions to be used in conjunction with the Layer Selection extension defined in {{video-layer-selection}}.
 
 - event name: "layers"
 - event data: JSON object
@@ -532,7 +532,7 @@ The event data JSON object contains the video layers information available for e
 - heigth: (Number) the current video height.
 - targetBitrate: (Number) the target encoding bitrate.
 
-The "layer" object MUST containt at least one of the rid, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL. A layer is considered inactive if the bitrate attribute is 0 or not set.
+The "layer" object MUST contain at least one of the rid, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL. A layer is considered inactive if the bitrate attribute is 0 or not set.
 
 ~~~~~
 {
@@ -585,7 +585,7 @@ It may be sent by the WHEP Resource when the following situation occurs:
   - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
   - The WHEP resource is going to be terminated due to resource management policies.
 
-Upon the receipt of the reconnect event, the WHEP player MUST restart the playbkack session as defined in {{playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided inthe "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attributue is not provided. The WHEP player MUST also terminate the current playback session as defined in {{playback-session-termination}}.
+Upon the receipt of the reconnect event, the WHEP player MUST restart the playback session as defined in {{playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided in the "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attribute is not provided. The WHEP player MUST also terminate the current playback session as defined in {{playback-session-termination}}.
 
 ~~~~~
 event: reconnect
@@ -614,7 +614,7 @@ data: {"viewercount":3}
 This event is mainly sent by the WHEP resource to indicate ad insertion opportunities for the WHEP player.
 
 - event name: "scte35"
-- event data: Base URL 64 serializaton of an SCTE35 message as defined in {{SCTE35}}.
+- event data: Base URL 64 serialization of an SCTE35 message as defined in {{SCTE35}}.
 
 ~~~~~
 event: scte35
@@ -638,20 +638,20 @@ Link: <https://whep.ietf.org/resource/213786HF/layer>;
 ~~~~~
 {: title="HTTP 201 response example containing the Video Layer Selection extension"}
 
-In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP player (based on bandwidth estimation or any other business logic). However, the WHEP player (or the person watching the stream) may decide that it whishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropiate HTTP error response if not.
+In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP player (based on bandwidth estimation or any other business logic). However, the WHEP player (or the person watching the stream) may decide that it wishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropriate HTTP error response if not.
 
 The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
 
 - mediaId: (String) m-line index to apply the layer selection(default: first video m-line)
 - rid: (String)  rid value of the simulcast encoding of the track (default: automatic selection)
 - spatialLayerId: (Number) The spatial layer id to send to the outgoing stream (default: max layer available)
-- temporalLayerId: (Number) The temporaral layer id to send to the outgoing stream (default: max layer available)
+- temporalLayerId: (Number) The temporal layer id to send to the outgoing stream (default: max layer available)
 - maxSpatialLayerId: (Number) Max spatial layer id (default: unlimited)
 - maxTemporalLayerId: (Number) Max temporal layer id (default: unlimited)
 - maxWidth: (Number) Max width of the layer (default: unlimited)
 - maxHeight: (Number) Max height of the layer (default: unlimited)
 
-The information about the avialable encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
+The information about the available encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
 
 ~~~~~
 POST /resource/213786HF/layer HTTP/1.1
