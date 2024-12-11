@@ -1,0 +1,310 @@
+---
+docname: draft-ietf-wish-whep-02
+title: WebRTC-HTTP Egress Protocol Core Extensions
+abbrev: whep
+category: std
+ipr: trust200902
+area: ART
+workgroup: wish
+
+keyword: WebRTC
+
+stand_alone: yes
+pi: [toc, sortrefs, symrefs]
+
+author:
+
+ -
+    ins: S. Murillo
+    name: Sergio Garcia Murillo
+    organization: Millicast
+    email: sergio.garcia.murillo@cosmosoftware.io
+    
+ -
+    ins: C. Chen
+    name: Cheng Chen
+    organization: ByteDance
+    email: webrtc@bytedance.com
+    
+normative:
+  FETCH:
+    author:
+      org: WHATWG
+    title: Fetch - Living Standard
+    target: https://fetch.spec.whatwg.org
+
+  SCTE35:
+    author:
+      org: ANSI
+    title: Digital Program Insertion Cueing Message
+    target: https://account.scte.org/standards/library/catalog/scte-35-digital-program-insertion-cueing-message
+    
+      
+--- abstract
+
+This document describes a mechanism to deliver adss core extensions for supporting events and video layer selection to WebRTC-HTTP Egress Protocol Events  (WHEP) .
+
+--- middle
+
+# Introduction
+
+# Terminology
+
+{::boilerplate bcp14-tagged}
+
+# Overview
+
+In the first version of the WHEP specification, two optional extensions are defined: the Server Sent Events and the Video Layer Selection.
+
+# Server Sent Events extension
+
+This optional extension provides support for server-to-client communication using WHATWG server sent events protocol as specified in https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:server-sent-events" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Server Sent Events REST API entrypoint. The "Link" header field MAY also contain an "events" attribute with a coma separated list of supported event types. 
+
+~~~~~
+HTTP/1.1 201 Created
+Content-Type: application/sdp
+Location: https://whep.example.org/resource/213786HF
+Link: <https://whep.ietf.org/resource/213786HF/sse>;
+      rel="urn:ietf:params:whep:ext:core:server-sent-events"
+      events="active,inactive,layers,reconnect,viewercount,scte35"
+~~~~~
+{: title="HTTP 201 response example containing the Server Sent Events extension"}
+
+If the extension is also supported by the WHEP player, it MAY send a POST request to the Server Sent Events REST API entrypoint to create a server-to-client event stream using WHATWG server sent events protocol. The POST request MAY contain an "application/json" body with an JSON array indicating the subset of the event list announced by the WHEP Resource on the "events" atribute which COULD be sent by the server using the server-to-client communication channel. The WHEP Endpoint will return a "201 Created" response with a Location header field pointing to the newly created server-to-client event stream.
+
+~~~~~
+POST /resource/213786HF/sse HTTP/1.1
+Host: whep.example.com
+Content-Type: application/json
+
+["active","inactive","layers","reconnect","viewercount"]
+
+HTTP/1.1 201 Created
+Location: https://whep.example.org/resource/213786HF/sse/event-stream
+~~~~~
+{: title="HTTP POST request to create a server-to-client event stream"}
+
+Once the server-to-client communication channel has been created the WHEP player can perform a long pull using the Url returned on the location header as specified in the WHATWG server sent events protocol.
+
+When an event is generated, the WHEP Resource MUST check for each event stream if the type is on the list provided by the WHEP player when the event stream was created, and if so enqueue it for delivering when an active long pull request is available.
+
+The events types supported by this specification are the following:
+
+- active: indicating that there is an active publication ongoing for this resource.
+- inactive: indicating that there is no active publication ongoing for this resource.
+- layers: provides information about the video layers being published for this resource.
+- reconnect: trigger the WHEP player to reconnect to the WHEP resource by re-initiate a WHEP protocol process.
+- viewercount: provides the number of viewers currently connected to this resource.
+- scte35: used in the to signal a local ad insertion opportunity in the media streams.
+
+The WHEP resource must indicate the event type in the "event" field and a JSON serialized string in the "data" field of the WHATWG server sent events message. In order to make the processing simpler on the WHEP player, the WHEP resource MUST encode the event data in a single "data" line.
+
+~~~~~
+event: viewercount
+data: {"viewercount":3}
+~~~~~
+{: title="Example event"}
+
+The WHEP player MAY destroy the event stream at anytime by sending a HTTP DELETE request to the Url returned on the location header on the created request. The WHEP Resource MUST drop any pending queued event and return a "404 Not found" if any further long pull request is received for the event stream.
+
+All the event streams associated with a WHEP Resource MUST be destroyed when the WHEP Resource is terminated.
+
+## active event
+The event is sent by the WHEP Resource when an active publication for the WHEP resource, either at the beginning of the playback when the resource is created or later during the playback session.
+
+- event name: "active"
+- event data: Empty JSON object, could be be enhanced in future versions of the specification.
+
+~~~~~
+event: active
+data: {}
+~~~~~
+{: title="active example event"}
+
+## inactive event
+The event is sent by the WHEP Resource when an active publication is no longer available. The WHEP Resource MUST NOT send an initial "inactive" event if there is no active publication when the resource is created.
+
+- event name: "inactive"
+- event data:  Empty JSON object, could be be enhanced in future versions of the specification.
+
+~~~~~
+event: inactive
+data: {}
+~~~~~
+{: title="inactive example event"}
+
+#### layers event
+The event is sent by the WHEP Resource to provide information to the WHEP player about the available video layers or renditions to be used in conjunction with the Layer Selection extension defined in {{video-layer-selection}}.
+
+- event name: "layers"
+- event data: JSON object
+
+The WHEP Resource MAY send the event periodically or just when the layer information has changed.
+
+The event data JSON object contains the video layers information available for each "m-line" indexed by the "m-line" order in the SDP. Each "m-line" value contains and array of layer" JSON objects, which each element contains the following information:
+
+- rid: (String) Restriction Identifiers (RID) or RtpStreamId value of the simulcast encoding of the layer as defined in {{Section 3.7 of !RFC9429}}.
+- spatialLayerId: (Number) the spatial layer id.
+- temporalLayerId: (Number) the temporal layer id .
+- bitrate: (Number) the current bitrate.
+- targetBitrate: (Number) the target encoding bitrate.
+- width: (Number) the current video width.
+- heigth: (Number) the current video height.
+- targetBitrate: (Number) the target encoding bitrate.
+
+The "layer" object MUST contain at least one of the rid, spatialLayerId or temporalLayerId attributes, the other attributes are OPTIONAL. A layer is considered inactive if the bitrate attribute is 0 or not set.
+
+~~~~~
+{
+  "0": [
+      { "rid": "2", "spatialLayerId": 0, "temporalLayerId": 1, "targetBitrate": 2000000, width: 1280, height: 720 },
+      { "rid": "2", "spatialLayerId": 0, "temporalLayerId": 0, "targetBitrate": 1000000, width: 1280, height: 720 },
+      { "rid": "1", "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 557112, "targetBitrate": 572000, width: 640, height: 360 },
+      { "rid": "1", "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 343592, "targetBitrate": 380000, width: 640, height: 360 },
+      { "rid": "0", "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, "targetBitrate": 128000, width: 320, height: 180 },
+      { "rid": "0", "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , "targetBitrate": 640000, width: 320, height: 180 }
+    ]
+}
+~~~~~
+{: title="Layer example JSON event data using simulcast and temporal scalability with highest encoding layer inactive"}
+
+~~~~~
+{
+  "0": [
+      { "spatialLayerId": 1, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
+      { "spatialLayerId": 1, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
+      { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
+      { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
+    ]
+}
+~~~~~
+{: title="Layer example JSON event data using SVC"}
+
+~~~~~
+{
+  "0": {
+      { "spatialLayerId": 1, "temporalLayerId": 1, "bitrate": 557112, width: 640, height: 360 },
+      { "spatialLayerId": 1, "temporalLayerId": 0, "bitrate": 343592, width: 640, height: 360 },
+      { "spatialLayerId": 0, "temporalLayerId": 1, "bitrate": 116352, width: 320, height: 180 },
+      { "spatialLayerId": 0, "temporalLayerId": 0, "bitrate": 67464 , width: 320, height: 180 }
+    ]
+}
+~~~~~
+{: title="Layer example JSON event data using SVC"}
+
+## reconnect event
+
+The reconnect event is sent by the WHEP Resource to notify the WHEP player that it should drop the current playback session and reconnect for starting a new one.
+
+  -  event name: "reconnect"
+  -  event data: JSON object optionally containing the WHEP Endpoint URL in an "url" to be used for the WHEP player to restart the WHEP protocol process.
+
+It may be sent by the WHEP Resource when the following situation occurs:
+
+  - The quality of service of the WHEP Resource declines which affects the quality of experience for end users.
+  - The connection between WHEP player and WHEP Resource is degraded which affects the quality of experience for end users.
+  - The WHEP resource is going to be terminated due to resource management policies.
+
+Upon the receipt of the reconnect event, the WHEP player MUST restart the playback session as defined in {{playback-session-setup}} by sending the HTTP POST request to the WHEP endpoint URL provided in the "url" attribute of the JSON object received in the event data or the original WHEP endpoint URL if the "url" attribute is not provided. The WHEP player MUST also terminate the current playback session as defined in {{playback-session-termination}}.
+
+~~~~~
+event: reconnect
+data: {"url": "https://whep-backup.example.com/whep/endpoint/"}
+~~~~~
+{: title="reconnect example event"}
+
+## viewercount event
+The event is sent by the WHEP Resource to provide the WHEP Player the information of number of viewers currently connected to this resource.
+
+- event name: "viewercount"
+- event data: JSON object containing a "viewercount" attribute with a Number value indicating the number of viewers currently watching the WHEP resource.
+
+The viewer count provided by the WHEP Resource MAY be approximate and not updated in real time but periodically to avoid  overloading both the event stream and the Media Server.
+
+~~~~~
+event: viewercount
+data: {"viewercount":3}
+~~~~~
+{: title="viewercount example event"}
+
+## scte35 event
+ 
+"Digital Program Insertion Cueing Message for Cable" {{SCTE35}}, is the core signaling standard for advertising, Program and distribution control (e.g., blackouts) of content for content providers and content distributors. SCTE 35 signals can be used to identify advertising breaks, advertising content, and programming content.
+
+This event is mainly sent by the WHEP resource to indicate ad insertion opportunities for the WHEP player.
+
+- event name: "scte35"
+- event data: Base URL 64 serialization of an SCTE35 message as defined in {{SCTE35}}.
+
+~~~~~
+event: scte35
+data: /DA8AAAAAAAAAP///wb+06ACpQAmAiRDVUVJAACcHX//AACky4AMEERJU0NZTVdGMDQ1MjAwMEgxAQEMm4c0
+~~~~~
+{: title="scte35 example event"}
+
+# Video Layer Selection extension {#video-layer-selection}
+
+The Layer Selection extensions allows the WHEP player to control which video layer or rendition is being delivered through the negotiated video MediaStreamTrack. When supported by the WHEP resource, a "Link" header field with a "rel" attribute of "urn:ietf:params:whep:ext:core:layer" MUST be returned in the initial HTTP "201 Created" response, with the Url of the Video Layer Selection REST API entrypoint. If this extension is supported by the WHEP Resource, the Server Sent Events extension MUST be supported as well and the "layers" event MUST be advertised as well.
+
+~~~~~
+HTTP/1.1 201 Created
+Content-Type: application/sdp
+Location: https://whep.example.org/resource/213786HF
+Link: <https://whep.ietf.org/resource/213786HF/layer>;
+      rel="urn:ietf:params:whep:ext:core:layer"
+Link: <https://whep.ietf.org/resource/213786HF/layer>;
+      rel="urn:ietf:params:whep:ext:core:server-sent-events"
+      events="layers"
+~~~~~
+{: title="HTTP 201 response example containing the Video Layer Selection extension"}
+
+In case that Simulcast or Scalable Video Codecs are supported by the Media Server and used in the active publication to the WHEP Resource, by default, the Media Server will choose one of the available video layers to be sent to the WHEP player (based on bandwidth estimation or any other business logic). However, the WHEP player (or the person watching the stream) may decide that it wishes to receive a different one (to preserve bandwidth or to best fit in the UI). In this case the WHEP player MAY send a HTTP POST request to theVideo Layer Selection  API entrypoint containing an "application/json" body with an JSON object indicating the information of the video layer that wishes to be received. The WHEP Endpoint will return a "200 OK" if the switch to the new video layer can be performed or an appropriate HTTP error response if not.
+
+The information that can sent on the JSON object in the POST request for doing layer selection is as follows:
+
+- mediaId: (String) m-line index to apply the layer selection(default: first video m-line)
+- rid: (String)  rid value of the simulcast encoding of the track (default: automatic selection)
+- spatialLayerId: (Number) The spatial layer id to send to the outgoing stream (default: max layer available)
+- temporalLayerId: (Number) The temporal layer id to send to the outgoing stream (default: max layer available)
+- maxSpatialLayerId: (Number) Max spatial layer id (default: unlimited)
+- maxTemporalLayerId: (Number) Max temporal layer id (default: unlimited)
+- maxWidth: (Number) Max width of the layer (default: unlimited)
+- maxHeight: (Number) Max height of the layer (default: unlimited)
+
+The information about the available encodings, spatial or temporal layers should be retrieverd from a "layers" event sent by the WHEP Resource using the Server Sent Events extension:
+
+~~~~~
+POST /resource/213786HF/layer HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sjon
+
+{mediaId:"0", "rid": "hd"}
+
+HTTP/1.1 200 OK
+~~~~~
+
+If the WHEP player wishes to return to the default selection performed by the Media Server, it just need to send an JSON Object removing the constrains for the layer:
+
+~~~~~
+POST /resource/213786HF/layer HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sjon
+
+{mediaId:"0"}
+
+HTTP/1.1 200 OK
+~~~~~
+
+# IANA Considerations
+
+Initial values for the WebRTC-HTTP egress protocol (WHEP) extension URNs registry are given below:
+
+ -   URN: urn:ietf:params:whep:ext:core:layer
+ -   Reference: (RFC TBD)
+ -   Description: Layer Selection protocol extension
+ -   Change Controller: IETF
+
+ -   URN: urn:ietf:params:whep:ext:core:server-sent-events
+ -   Reference: (RFC TBD)
+ -   Description: Server Sent Events protocol extension
+ -   Change Controller: IETF
