@@ -25,6 +25,12 @@ author:
     name: Cheng Chen
     organization: ByteDance
     email: webrtc@bytedance.com
+ -
+    ins: D. Jenkins
+    name: Dan Jenkins
+    organization: Everycast Labs Ltd
+    email: dan@everycastlabs.uk
+    role: editor
     
 normative:
   FETCH:
