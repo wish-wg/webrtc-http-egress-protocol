@@ -77,7 +77,7 @@ The WebRTC-HTTP Egress Protocol (WHEP) is designed to facilitate an exchange of 
 
 Upon successful establishment of the ICE/DTLS session, unidirectional media data transmission commences from the media server to the WHEP player. It is important to note that SDP renegotiations are not supported in WHEP, meaning that no modifications to the "m=" sections can be made after the initial SDP offer/answer exchange via HTTP POST is completed and only ICE related information can be updated via HTTP PATCH requests as defined in {{ice-support}}.
 
-The WHEP player always initiates the streaming session by sending an SDP offer to the WHEP endpoint. The server can then choose to either accept the client's offer by responding with an SDP answer, or reject the client's offer and counter with its own SDP offer. If the server sends a counter-offer, the client must then respond with an SDP answer. A WHEP player must support processing both SDP answers (when the server accepts the client's offer) and SDP offers (when the server sends a counter-offer) in response to the initial request.
+The WHEP player always initiates the streaming session by sending an SDP offer to the WHEP endpoint. The WHEP endpoint can then choose to either accept the client's offer by responding with an SDP answer, or reject the client's offer and counter with its own SDP offer. If the WHEP endpoint sends a counter-offer, the client must then respond with an SDP answer. A WHEP player must support processing both SDP answers (when the WHEP endpoint accepts the client's offer) and SDP offers (when the WHEP endpoint sends a counter-offer) in response to the initial request.
 
 ## Protocol Operation Flow
 
@@ -93,10 +93,11 @@ The following diagram illustrates the core operation of the WHEP protocol for in
     +------------------------>+              |                  |       
     |201 Created (SDP answer) |              |                  |       
     |   OR                    |              |                  |
-    |202 Accepted (SDP offer) |              |                  |       
+    |406 Not Acceptable       |              |                  |       
+    |   (SDP offer)           |              |                  |
     +<------------------------+              |                  |
     |                         |              |                  |
-    |  [IF 202 Accepted]      |              |                  |
+    |  [IF 406 Not Acceptable]|              |                  |
     |HTTP PATCH [session]     |              |                  |
     |   (SDP answer)          |              |                  |
     +---------------------------------------------------------->+
@@ -132,8 +133,8 @@ The {{whep-protocol-operation}} illustrates the communication flow between a WHE
 ## Protocol Operation Steps
 
 - WHEP player: Initiates the communication by sending an HTTP POST with an SDP offer to the WHEP endpoint.
-- WHEP endpoint: Responds with either a "201 Created" message containing an SDP answer (accepting the client's offer) or a "202 Accepted" message containing an SDP counter-offer (rejecting the client's offer).
-- WHEP player: If the server responded with "202 Accepted", the player sends an HTTP PATCH containing an SDP answer to the WHEP session URL.
+- WHEP endpoint: Responds with either a "201 Created" message containing an SDP answer (accepting the client's offer) or a "406 Not Acceptable" message containing an SDP counter-offer (rejecting the client's offer).
+- WHEP player: If the WHEP endpoint responded with "406 Not Acceptable", the player sends an HTTP PATCH containing an SDP answer to the WHEP session URL.
 - WHEP session: If applicable, responds with a "204 No Content" message to the PATCH request.
 - WHEP player and media server: Establish ICE and DTLS sessions for NAT traversal and secure communication.
 - RTP/RTCP Flow: Real-time Transport Protocol and Real-time Transport Control Protocol flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
@@ -160,17 +161,19 @@ If the WHEP endpoint chooses to accept the client's SDP offer, it MUST generate 
 
 ### Server Sends Counter-offer
 
-If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate its own SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "202 Accepted" response with a content type of "application/sdp", the SDP counter-offer as the body, and a Location header field pointing to the WHEP session resource that will be created upon completion of the offer/answer exchange.
+If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate its own SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "406 Not Acceptable" response with a content type of "application/sdp", the SDP counter-offer as the body, and a Location header field pointing to the WHEP session resource that will be created upon completion of the offer/answer exchange.
 
-When the WHEP player receives a counter-offer from the server, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
+The WHEP endpoint MAY include a "valid-until" parameter in the Content-Type header to indicate how long the counter-offer remains valid. If no "valid-until" parameter is provided, the counter-offer remains valid for 30 seconds from the time the response was sent. The "valid-until" parameter value MUST be an HTTP-date as defined in {{Section 5.6.7 of !RFC9110}}.
+
+When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
 
 ### Determining Server Response Type
 
-WHEP players can determine the server's response type by examining the HTTP status code:
+WHEP players can determine the WHEP endpoint's response type by examining the HTTP status code:
 
-- **"201 Created"**: The server has accepted the client's offer and responded with an SDP answer. The WHEP session has been created and is ready for media transmission.
+- **"201 Created"**: The WHEP endpoint has accepted the client's offer and responded with an SDP answer. The WHEP session has been created and is ready for media transmission.
 
-- **"202 Accepted"**: The server has rejected the client's offer and responded with an SDP counter-offer. The client MUST send an HTTP PATCH request to the session URL with an SDP answer to complete the session establishment.
+- **"406 Not Acceptable"**: The WHEP endpoint has rejected the client's offer and responded with an SDP counter-offer. The client MUST send an HTTP PATCH request to the WHEP session URL with an SDP answer to complete the session establishment.
 
 ### Error Conditions
 
@@ -185,9 +188,22 @@ As the WHEP protocol only supports the playback use case with unidirectional med
 - When a WHEP endpoint sends an SDP counter-offer, it SHOULD use "sendonly" attribute but MAY use the "sendrecv" attribute instead. The "inactive" and "recvonly" attributes MUST NOT be used.
 - When a WHEP player sends an SDP answer (responding to server counter-offer), it MUST use "recvonly" attribute in the SDP answer.
 
+### Codec Recommendations
+
+WHEP players SHOULD include as many supported codecs as possible in their SDP offers and answers to maximize compatibility and enable dynamic streaming scenarios. This applies whether the WHEP player is sending the initial offer or responding to a server counter-offer with an answer.
+
+Including a comprehensive list of supported codecs enables several important use cases:
+
+- **Dynamic source switching**: A WHEP endpoint may need to change which camera or media source a stream is connected to, potentially requiring different codecs for optimal quality or performance.
+- **Adaptive streaming**: The WHEP endpoint may switch between different codec configurations based on network conditions, viewer capabilities, or content characteristics.
+- **Failover scenarios**: If the primary codec encounters issues, having alternative codecs available allows seamless fallback without requiring renegotiation.
+- **Multi-resolution support**: Different codecs may be optimal for different resolutions or bitrates that the WHEP endpoint may need to provide.
+
+WHEP players that restrict their codec offerings may prevent these advanced streaming scenarios and limit the WHEP endpoint's ability to provide optimal streaming experiences.
+
 ### Examples
 
-Following {{sdp-exchange-example-server-accepts}} is an example where the server accepts the client's offer:
+Following {{sdp-exchange-example-server-accepts}} is an example where the WHEP endpoint accepts the client's offer:
 
 ~~~~~
 POST /whep/endpoint HTTP/1.1
@@ -296,9 +312,9 @@ a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 a=msid:- d46fb922-d52a-4e9c-aa87-444eadc1521b
 ~~~~~
-{: title="Example where server accepts client offer" #sdp-exchange-example-server-accepts}
+{: title="Example where WHEP endpoint accepts client offer" #sdp-exchange-example-server-accepts}
 
-Following {{sdp-exchange-example-server-counter-offer}} is an example where the server sends a counter-offer:
+Following {{sdp-exchange-example-server-counter-offer}} is an example where the WHEP endpoint sends a counter-offer:
 
 ~~~~~
 POST /channel/teeny-tasty-crayon HTTP/1.1
@@ -350,8 +366,8 @@ a=rtcp-fb:96 nack pli
 a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 
-HTTP/1.1 202 Accepted
-Content-Type: application/sdp
+HTTP/1.1 406 Not Acceptable
+Content-Type: application/sdp; valid-until="Wed, 09 Oct 2024 10:00:00 GMT"
 Content-Length: 3552
 Location: https://whep.example.com/channel/teeny-tasty-crayon/3de3c94a-fc0f-4659-bcaf-8bdebf718457
 
@@ -518,7 +534,7 @@ a=fmtp:96 apt=100
 
 HTTP/1.1 204 No Content
 ~~~~~
-{: title="Example where server sends counter-offer" #sdp-exchange-example-server-counter-offer}
+{: title="Example where WHEP endpoint sends counter-offer" #sdp-exchange-example-server-counter-offer}
 
 ### Session Management
 
@@ -615,7 +631,7 @@ As defined in {{Section 4.4.1.1.1 of !RFC8839}} the set of candidates after an I
 
 If the ICE restart request cannot be satisfied by the WHEP session, the resource MUST return an appropriate HTTP error code and MUST NOT terminate the session immediately and keep the existing ICE session. The WHEP player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In any case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{Section 5.1 of !RFC7675}}.
 
-In case of unstable network conditions, the ICE restart HTTP PATCH requests and responses might be received out of order. In order to mitigate this scenario, when the client performs an ICE restart, it MUST discard any previous ICE username and passwords fragments and ignore any further HTTP PATCH response received from a pending HTTP PATCH request. WHEP players MUST apply only the ICE information received in the response to the last sent request. If there is a mismatch between the ICE information at the WHEP player and at the WHEP session (because of an out-of-order request), the STUN requests will contain invalid ICE information and will be dropped by the receiving side. If this situation is detected by the WHEP player, it MUST send a new ICE restart request to the server.
+In case of unstable network conditions, the ICE restart HTTP PATCH requests and responses might be received out of order. In order to mitigate this scenario, when the client performs an ICE restart, it MUST discard any previous ICE username and passwords fragments and ignore any further HTTP PATCH response received from a pending HTTP PATCH request. WHEP players MUST apply only the ICE information received in the response to the last sent request. If there is a mismatch between the ICE information at the WHEP player and at the WHEP session (because of an out-of-order request), the STUN requests will contain invalid ICE information and will be dropped by the receiving side. If this situation is detected by the WHEP player, it MUST send a new ICE restart request to the WHEP session.
 
 ~~~~~
 PATCH /session/id HTTP/1.1
