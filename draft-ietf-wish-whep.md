@@ -73,14 +73,17 @@ This document mimics what has been done in the WebRTC HTTP Ingest Protocol (WHIP
 
 # Overview
 
-The WebRTC-HTTP Egress Protocol (WHEP) is designed to facilitate a one-time exchange of Session Description Protocol (SDP) offers and answers using HTTP POST requests. This exchange is a fundamental step in establishing an Interactive Connectivity Establishment (ICE) and Datagram Transport Layer Security (DTLS) session between WHEP player and the streaming service endpoint (Media Server).
+The WebRTC-HTTP Egress Protocol (WHEP) is designed to facilitate an exchange of Session Description Protocol (SDP) offers and answers using HTTP POST requests. This exchange is a fundamental step in establishing an Interactive Connectivity Establishment (ICE) and Datagram Transport Layer Security (DTLS) session between WHEP player and the streaming service endpoint (Media Server).
 
 Upon successful establishment of the ICE/DTLS session, unidirectional media data transmission commences from the media server to the WHEP player. It is important to note that SDP renegotiations are not supported in WHEP, meaning that no modifications to the "m=" sections can be made after the initial SDP offer/answer exchange via HTTP POST is completed and only ICE related information can be updated via HTTP PATCH requests as defined in {{ice-support}}.
+
+The WHEP player always initiates the streaming session by sending an SDP offer to the WHEP endpoint. The WHEP endpoint can then choose to either accept the client's offer by responding with an SDP answer, or reject the client's offer and counter with its own SDP offer. If the WHEP endpoint sends a counter-offer, the client must then respond with an SDP answer. A WHEP player must support processing both SDP answers (when the WHEP endpoint accepts the client's offer) and SDP offers (when the WHEP endpoint sends a counter-offer) in response to the initial request.
+
+## Protocol Operation Flow
 
 The following diagram illustrates the core operation of the WHEP protocol for initiating and terminating a viewing session:
 
 ~~~~~
-                                                                               
  +-------------+    +---------------+ +--------------+ +---------------+
  | WHEP player |    | WHEP endpoint | | Media Server | | WHEP session |
  +--+----------+    +---------+-----+ +------+-------+ +--------|------+
@@ -89,7 +92,17 @@ The following diagram illustrates the core operation of the WHEP protocol for in
     |HTTP POST (SDP Offer)    |              |                  |       
     +------------------------>+              |                  |       
     |201 Created (SDP answer) |              |                  |       
-    +<------------------------+              |                  |       
+    |   OR                    |              |                  |
+    |406 Not Acceptable       |              |                  |       
+    |   (SDP offer)           |              |                  |
+    +<------------------------+              |                  |
+    |                         |              |                  |
+    |  [IF 406 Not Acceptable]|              |                  |
+    |HTTP PATCH [session]     |              |                  |
+    |   (SDP answer)          |              |                  |
+    +---------------------------------------------------------->+
+    |204 No Content           |              |                  |
+    +<----------------------------------------------------------+ 
     |          ICE REQUEST                   |                  |       
     +--------------------------------------->+                  |       
     |          ICE RESPONSE                  |                  |       
@@ -112,14 +125,18 @@ The elements in {{whep-protocol-operation}} are described as follows:
 - WHEP endpoint: This denotes the egress server that receives the initial WHEP request.
 - WHEP endpoint URL: Refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
 - Media server: This is the WebRTC Media Server that establishes the media session with the WHEP player and delivers the media to it.
-- WHEP sesion: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
+- WHEP session: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
 - WHEP session URL: Refers to the URL of the WHEP resource allocated by the WHEP endpoint for a specific media session. The WHEP player can send requests to the WHEP session using this URL to modify the session, such as ICE operations or termination.
 
-The {{whep-protocol-operation}} illustrates the communication flow between a WHEP player, WHEP endpoint, media server, and WHEP session. This flow outlines the process of setting up and tearing down an playback session using the WHEP protocol, involving negotiation, ICE for Network Address Translation (NAT) traversal, DTLS and Secure Real-time Transport Protocol (SRTP) for security, and RTP/RTCP for media transport:
+The {{whep-protocol-operation}} illustrates the communication flow between a WHEP player, WHEP endpoint, media server, and WHEP session. This flow outlines the process of setting up and tearing down a playback session using the WHEP protocol, involving negotiation, ICE for Network Address Translation (NAT) traversal, DTLS and Secure Real-time Transport Protocol (SRTP) for security, and RTP/RTCP for media transport:
 
-- WHEP player: Initiates the communication by sending an HTTP POST with an SDP Offer to the WHEP endpoint.
-- WHEP endpoint: Responds with a "201 Created" message containing an SDP answer.
-- WHEP player and media server: Establish an ICE and DTLS sessions for NAT traversal and secure communication.
+## Protocol Operation Steps
+
+- WHEP player: Initiates the communication by sending an HTTP POST with an SDP offer to the WHEP endpoint.
+- WHEP endpoint: Responds with either a "201 Created" message containing an SDP answer (accepting the client's offer) or a "406 Not Acceptable" message containing an SDP counter-offer (rejecting the client's offer).
+- WHEP player: If the WHEP endpoint responded with "406 Not Acceptable", the player sends an HTTP PATCH containing an SDP answer to the WHEP session URL.
+- WHEP session: If applicable, responds with a "204 No Content" message to the PATCH request.
+- WHEP player and media server: Establish ICE and DTLS sessions for NAT traversal and secure communication.
 - RTP/RTCP Flow: Real-time Transport Protocol and Real-time Transport Control Protocol flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
 - WHEP player: Sends an HTTP DELETE to terminate the WHEP session.
 - WHEP session: Responds with a "200 OK" to confirm the session termination.
@@ -132,15 +149,61 @@ Following {{?BCP56}} guidelines, WHEP players MUST NOT match error codes returne
 
 The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX successful response with no content when a GET request is received.
 
-## Playback session set up  {#playback-session-setup}
+## Playback session set up {#playback-session-setup}
 
 In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
 
-The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. The WHEP endpoint MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session. If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response. 
+The HTTP POST request MUST have a content type of "application/sdp" and contain the SDP offer as the body. Upon receiving the HTTP POST request, the WHEP endpoint can choose to either accept the client's offer or reject it in favor of sending its own offer.
 
-As the WHEP protocol only supports the playback use case with unidirectional media, the WHEP player SHOULD use "recvonly" attribute in the SDP offer but MAY use the "sendrecv" attribute instead, "inactive" and "sendonly" attributes MUST NOT be used. The WHEP endpoint MUST use "sendonly" attribute in the SDP answer. 
+### Server Accepts Client Offer
 
-Following {{sdp-exchange-example}} is an example of an HTTP POST sent from a WHEP player to a WHEP endpoint and the "201 Created" response from the WHEP endpoint containing the Location header pointing to the newly created WHEP session:
+If the WHEP endpoint chooses to accept the client's SDP offer, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session.
+
+### Server Sends Counter-offer
+
+If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate its own SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "406 Not Acceptable" response with a content type of "application/sdp", the SDP counter-offer as the body, and a Location header field pointing to the WHEP session resource that will be created upon completion of the offer/answer exchange.
+
+The WHEP endpoint MAY include a "valid-until" parameter in the Content-Type header to indicate how long the counter-offer remains valid. If no "valid-until" parameter is provided, the counter-offer remains valid for 30 seconds from the time the response was sent. The "valid-until" parameter value MUST be an HTTP-date as defined in {{Section 5.6.7 of !RFC9110}}.
+
+When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
+
+### Determining Server Response Type
+
+WHEP players can determine the WHEP endpoint's response type by examining the HTTP status code:
+
+- **"201 Created"**: The WHEP endpoint has accepted the client's offer and responded with an SDP answer. The WHEP session has been created and is ready for media transmission.
+
+- **"406 Not Acceptable"**: The WHEP endpoint has rejected the client's offer and responded with an SDP counter-offer. The client MUST send an HTTP PATCH request to the WHEP session URL with an SDP answer to complete the session establishment.
+
+### Error Conditions
+
+If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response.
+
+### Media Direction Attributes
+
+As the WHEP protocol only supports the playback use case with unidirectional media:
+
+- When a WHEP player sends an SDP offer, it SHOULD use "recvonly" attribute but MAY use the "sendrecv" attribute instead. The "inactive" and "sendonly" attributes MUST NOT be used.
+- When a WHEP endpoint sends an SDP answer (accepting client offer), it MUST use "sendonly" attribute in the SDP answer.
+- When a WHEP endpoint sends an SDP counter-offer, it SHOULD use "sendonly" attribute but MAY use the "sendrecv" attribute instead. The "inactive" and "recvonly" attributes MUST NOT be used.
+- When a WHEP player sends an SDP answer (responding to server counter-offer), it MUST use "recvonly" attribute in the SDP answer.
+
+### Codec Recommendations
+
+WHEP players SHOULD include as many supported codecs as possible in their SDP offers and answers to maximize compatibility and enable dynamic streaming scenarios. This applies whether the WHEP player is sending the initial offer or responding to a server counter-offer with an answer.
+
+Including a comprehensive list of supported codecs enables several important use cases:
+
+- **Dynamic source switching**: A WHEP endpoint may need to change which camera or media source a stream is connected to, potentially requiring different codecs for optimal quality or performance.
+- **Adaptive streaming**: The WHEP endpoint may switch between different codec configurations based on network conditions, viewer capabilities, or content characteristics.
+- **Failover scenarios**: If the primary codec encounters issues, having alternative codecs available allows seamless fallback without requiring renegotiation.
+- **Multi-resolution support**: Different codecs may be optimal for different resolutions or bitrates that the WHEP endpoint may need to provide.
+
+WHEP players that restrict their codec offerings may prevent these advanced streaming scenarios and limit the WHEP endpoint's ability to provide optimal streaming experiences.
+
+### Examples
+
+Following {{sdp-exchange-example-server-accepts}} is an example where the WHEP endpoint accepts the client's offer:
 
 ~~~~~
 POST /whep/endpoint HTTP/1.1
@@ -249,7 +312,231 @@ a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 a=msid:- d46fb922-d52a-4e9c-aa87-444eadc1521b
 ~~~~~
-{: title="Example of SDP offer/answer exchange done via an HTTP POST" #sdp-exchange-example}
+{: title="Example where WHEP endpoint accepts client offer" #sdp-exchange-example-server-accepts}
+
+Following {{sdp-exchange-example-server-counter-offer}} is an example where the WHEP endpoint sends a counter-offer:
+
+~~~~~
+POST /channel/teeny-tasty-crayon HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sdp
+Content-Length: 1326
+
+v=0
+o=- 5228595038118931041 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=ice-options:trickle ice2
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:zjkk
+a=ice-pwd:bP+XJMM09aR8AiX1jdukzR6Y
+a=fingerprint:sha-256 DA:7B:57:DC:28:CE:04:4F:31:79:85:C4:31:67:EB:27:58:29:ED:77:2A:0D:24:AE:ED:AD:30:BC:BD:F1:9C:02
+a=setup:actpass
+a=mid:0
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=recvonly
+a=rtcp-mux
+a=rtcp-mux-only
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+m=video 0 UDP/TLS/RTP/SAVPF 96 97
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:zjkk
+a=ice-pwd:bP+XJMM09aR8AiX1jdukzR6Y
+a=fingerprint:sha-256 DA:7B:57:DC:28:CE:04:4F:31:79:85:C4:31:67:EB:27:58:29:ED:77:2A:0D:24:AE:ED:AD:30:BC:BD:F1:9C:02
+a=setup:actpass
+a=mid:1
+a=bundle-only
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtcp-mux-only
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 ccm fir
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96
+
+HTTP/1.1 406 Not Acceptable
+Content-Type: application/sdp; valid-until="Wed, 09 Oct 2024 10:00:00 GMT"
+Content-Length: 3552
+Location: https://whep.example.com/channel/teeny-tasty-crayon/3de3c94a-fc0f-4659-bcaf-8bdebf718457
+
+v=0
+o=- 2438602337097565327 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS feedbackvideomslabel e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=group:BUNDLE 0 1 2 3
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+a=rtcp:9 IN IP4 0.0.0.0
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=setup:active
+a=mid:0
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:3592962548 cname:feedbackvideocname
+a=ssrc:3592962548 label:feedbackvideolabel
+a=ssrc:3592962548 mslabel:feedbackvideomslabel
+a=ssrc:3592962548 msid:feedbackvideomslabel feedbackvideolabel
+a=rtcp-mux
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=setup:active
+a=mid:1
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=rtcp-mux
+a=sctpmap:5000 webrtc-datachannel 262144
+m=audio 9 RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+a=rtcp:9 IN IP4 0.0.0.0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:8 c9:params:rtp-hdrext:info
+a=setup:active
+a=mid:2
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:2338673210 cname:0p6mZhWJw+/818iW
+a=ssrc:2338673210 label:2fcad988-9bc2-4705-b408-9aee41bc3d71
+a=ssrc:2338673210 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:2338673210 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 2fcad988-9bc2-4705-b408-9aee41bc3d71
+a=rtcp-mux
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+a=rtcp:9 IN IP4 0.0.0.0
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=setup:active
+a=mid:3
+a=sendonly
+a=ice-ufrag:CiYfXaM3jHrmpF
+a=ice-pwd:VQFGPhTQj/BnaJ/tkec9m1Hi
+a=fingerprint:sha-256 4C:C3:25:E0:29:75:AF:01:53:94:CD:C4:6F:5F:15:5E:E3:1A:10:AE:8C:96:07:5A:18:AC:49:5F:55:68:6C:C5
+a=candidate:676201573392 1 udp 142541055 172.234.108.130 10000 typ host generation 0 network-id 1
+a=ssrc:755359452 cname:0p6mZhWJw+/818iW
+a=ssrc:755359452 label:d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:755359452 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:755359452 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:280880788 cname:0p6mZhWJw+/818iW
+a=ssrc:280880788 label:d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc:280880788 mslabel:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6
+a=ssrc:280880788 msid:e6ddf4a9-b5ed-4e87-9ae3-ef126a9164d6 d6bca5d1-b69d-4d9d-8b5d-9117707cdb81
+a=ssrc-group:FID 755359452 280880788
+a=rtcp-mux
+
+PATCH /channel/teeny-tasty-crayon/3de3c94a-fc0f-4659-bcaf-8bdebf718457 HTTP/1.1
+Host: whep.example.com
+Content-Type: application/sdp
+Content-Length: 2410
+
+v=0
+o=- 4541478638207698795 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1 2 3
+a=msid-semantic: WMS
+m=video 56464 RTP/SAVPF 100 96
+c=IN IP4 192.168.167.137
+a=rtcp:9 IN IP4 0.0.0.0
+a=candidate:170904481 1 udp 2122129151 192.168.167.137 56464 typ host generation 0 network-id 1 network-cost 10
+a=candidate:3499970512 1 udp 2122265343 fd2e:9c8b:abe4:2:838:1bbe:9d48:3ec 53930 typ host generation 0 network-id 3 network-cost 10
+a=candidate:3061500384 1 udp 2122197247 2001:9b1:28fe:9400:88fb:57a4:5888:153b 62309 typ host generation 0 network-id 2 network-cost 10
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:0
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:100 VP8/90000
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:1
+a=sctp-port:5000
+m=audio 9 RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:2
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=recvonly
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+m=video 9 RTP/SAVPF 100 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:37nK
+a=ice-pwd:NZH/oQX6FHAl+EmWvpgoPZzC
+a=ice-options:trickle
+a=fingerprint:sha-256 00:91:87:75:0D:C7:F6:D4:65:4D:9F:1D:EF:52:A1:60:02:8D:E7:67:73:68:B9:78:12:D9:FD:3E:09:F8:BF:3D
+a=setup:passive
+a=mid:3
+a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=recvonly
+a=rtcp-mux
+a=rtpmap:100 VP8/90000
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=rtpmap:96 rtx/90000
+a=fmtp:96 apt=100
+
+HTTP/1.1 204 No Content
+~~~~~
+{: title="Example where WHEP endpoint sends counter-offer" #sdp-exchange-example-server-counter-offer}
+
+### Session Management
 
 The WHEP endpoint COULD require a live publishing to be happening in order to allow a WHEP players to start viewing a stream.
 In that case, the WHEP endpoint SHALL return a "409 Conflict" response to the POST request issued by the WHEP player with a "Retry-After" header indicating the number of seconds before sending a new request.
@@ -277,7 +564,7 @@ Trickle ICE and ICE restart support are RECOMMENDED for both WHEP sessions and c
 
 ### HTTP PATCH request usage {#http-patch-usage}
 
-The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropiate 4XX error response.
+The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropriate 4XX error response.
 
 If the WHEP session supports either Trickle ICE or ICE restarts, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}. 
 
@@ -344,7 +631,7 @@ As defined in {{Section 4.4.1.1.1 of !RFC8839}} the set of candidates after an I
 
 If the ICE restart request cannot be satisfied by the WHEP session, the resource MUST return an appropriate HTTP error code and MUST NOT terminate the session immediately and keep the existing ICE session. The WHEP player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In any case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{Section 5.1 of !RFC7675}}.
 
-In case of unstable network conditions, the ICE restart HTTP PATCH requests and responses might be received out of order. In order to mitigate this scenario, when the client performs an ICE restart, it MUST discard any previous ICE username and passwords fragments and ignore any further HTTP PATCH response received from a pending HTTP PATCH request. WHEP players MUST apply only the ICE information received in the response to the last sent request. If there is a mismatch between the ICE information at the WHEP player and at the WHEP session (because of an out-of-order request), the STUN requests will contain invalid ICE information and will be dropped by the receiving side. If this situation is detected by the WHEP player, it MUST send a new ICE restart request to the server.
+In case of unstable network conditions, the ICE restart HTTP PATCH requests and responses might be received out of order. In order to mitigate this scenario, when the client performs an ICE restart, it MUST discard any previous ICE username and passwords fragments and ignore any further HTTP PATCH response received from a pending HTTP PATCH request. WHEP players MUST apply only the ICE information received in the response to the last sent request. If there is a mismatch between the ICE information at the WHEP player and at the WHEP session (because of an out-of-order request), the STUN requests will contain invalid ICE information and will be dropped by the receiving side. If this situation is detected by the WHEP player, it MUST send a new ICE restart request to the WHEP session.
 
 ~~~~~
 PATCH /session/id HTTP/1.1
