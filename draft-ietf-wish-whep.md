@@ -1,5 +1,5 @@
 ---
-docname: draft-ietf-wish-whep-02
+docname: draft-ietf-wish-whep-03
 title: WebRTC-HTTP Egress Protocol (WHEP)
 abbrev: whep
 category: std
