@@ -948,10 +948,21 @@ A WHEP Protocol Extension URNs is defined by completing the following template:
  -   Description: A brief description of the function of the extension, in a short paragraph or two
  -   Contact information: Contact information for the organization or person making the registration
 
-# Acknowledgements
-
-The authors wish to thank Lorenzo Miniero, Juliusz Chroboczek, Adam Roach, Nils Ohlmeier, Christer Holmberg, Cameron Elliott, Gustavo Garcia, Jonas Birme, Sandro Gauci, Christer Holmberg and everyone else in the WebRTC community that have provided comments, feedback, text and improvement proposals on the document and contributed early implementations of the spec. 
-
 --- back
 
+# Contributors
+{:numbered="false"}
+~~~~
+  Jonas Birmé
+  Eyevinn Technology
+  jonas.birme@eyevinn.se
 
+  Dapeng Liu
+  Alibaba Inc.
+  max.ldp@alibaba-inc.com
+~~~~
+
+# Acknowledgements
+{:numbered="false"}
+
+The authors wish to thank Lorenzo Miniero, Juliusz Chroboczek, Adam Roach, Nils Ohlmeier, Christer Holmberg, Cameron Elliott, Gustavo Garcia, Sandro Gauci, and everyone else in the WebRTC community that have provided comments, feedback, text and improvement proposals on the document and contributed early implementations of the spec.
