@@ -159,13 +159,15 @@ The HTTP POST request MUST have a content type of "application/sdp" and contain 
 
 If the WHEP endpoint chooses to accept the client's SDP offer, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session.
 
+The WHEP endpoint MAY partially accept the client's offer by accepting some m-lines while rejecting others, as specified in {{partial-media-acceptance}}. This allows the WHEP endpoint to accept audio and video m-lines while rejecting data channel m-lines, for example.
+
 ### Server Sends Counter-offer
 
 If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate its own SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "406 Not Acceptable" response with a content type of "application/sdp", the SDP counter-offer as the body, and a Location header field pointing to the WHEP session resource that will be created upon completion of the offer/answer exchange.
 
 The WHEP endpoint MAY include a "valid-until" parameter in the Content-Type header to indicate how long the counter-offer remains valid. If no "valid-until" parameter is provided, the counter-offer remains valid for 30 seconds from the time the response was sent. The "valid-until" parameter value MUST be an HTTP-date as defined in {{Section 5.6.7 of !RFC9110}}.
 
-When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
+When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. The WHEP player MAY partially accept the server's counter-offer by accepting some m-lines while rejecting others, as specified in {{partial-media-acceptance}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
 
 ### Determining Server Response Type
 
@@ -174,6 +176,22 @@ WHEP players can determine the WHEP endpoint's response type by examining the HT
 - **"201 Created"**: The WHEP endpoint has accepted the client's offer and responded with an SDP answer. The WHEP session has been created and is ready for media transmission.
 
 - **"406 Not Acceptable"**: The WHEP endpoint has rejected the client's offer and responded with an SDP counter-offer. The client MUST send an HTTP PATCH request to the WHEP session URL with an SDP answer to complete the session establishment.
+
+### Partial Media Acceptance {#partial-media-acceptance}
+
+WHEP allows for partial acceptance of media streams, where some m-lines in an SDP offer may be accepted while others are rejected. This enables scenarios where, for example, audio and video m-lines are accepted but data channel m-lines are rejected.
+
+Partial acceptance also enables accepting only audio or only video, allowing WHEP players to optimize for their specific requirements. For instance, an audio-only WHEP player can reject video m-lines to avoid receiving unnecessary video data, or a video-only player can reject audio m-lines when audio is not needed. This optimization reduces bandwidth consumption and resource utilization when full media reception is not required.
+
+When generating an SDP answer, either the WHEP endpoint (when accepting a client offer) or the WHEP player (when answering a server counter-offer) MAY reject individual m-lines by setting the port number to 0 in the corresponding m-line of the SDP answer, as specified in {{Section 5.3.1 of !RFC9429}}. Rejected m-lines MUST have their port set to 0 and SHALL NOT include any codec or format information.
+
+Partial acceptance applies to both directions of the offer/answer exchange:
+
+- **Server accepting client offer**: When the WHEP endpoint returns a "201 Created" response with an SDP answer, it MAY reject individual m-lines from the client's offer by setting their port to 0.
+
+- **Client answering server counter-offer**: When the WHEP player sends an SDP answer via HTTP PATCH in response to a server counter-offer, it MAY reject individual m-lines from the server's counter-offer by setting their port to 0.
+
+The MediaStream constraint in {{single-mediastream}} requires that at least one MediaStreamTrack of any media kind is accepted. Therefore, at least one audio or video m-line MUST be accepted in the final negotiated session. Data channel m-lines (application m-lines) MAY be rejected without affecting the session establishment.
 
 ### Error Conditions
 
@@ -678,7 +696,7 @@ To simplify the implementation of WHEP in both players and media servers, WHEP i
 
 Both the WHEP player and the WHEP endpoint SHALL support {{!RFC9143}} and use "max-bundle" policy as defined in {{!RFC9429}}. The WHEP player and the media server MUST support multiplexed media associated with the BUNDLE group as per {{Section 9 of !RFC9143}}. In addition, per {{!RFC9143}} the WHEP player and media server SHALL use RTP/RTCP multiplexing {{!RFC8858}} for all bundled media. In order to reduce the network resources required at the media server, both the WHEP player and WHEP endpoints MUST include the "rtcp-mux-only" attribute in each bundled "m=" sections as per {{Section 3 of !RFC8858}}.
 
-### Single MediaStream
+### Single MediaStream {#single-mediastream}
 
 WHEP only supports a single MediaStream as defined in {{!RFC8830}} and therefore all "m=" sections MUST contain an "msid" attribute with the same value. The MediaStream MUST contain at least one MediaStreamTrack of any media kind and it MUST NOT have two or more than MediaStreamTracks for the same media (audio or video).
 
