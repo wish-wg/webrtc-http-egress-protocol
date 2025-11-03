@@ -149,6 +149,28 @@ Following {{?BCP56}} guidelines, WHEP players MUST NOT match error codes returne
 
 The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX successful response with no content when a GET request is received.
 
+## WHEP Endpoint URL Discoverability {#whep-url-discoverability}
+
+Many video player SDKs and generic video players need a mechanism to automatically detect whether a given URL corresponds to a WHEP endpoint, similar to how URLs ending in `.m3u8` are recognized as HLS streams or how `.mpd` indicates DASH manifests.
+
+To enable discoverability of WHEP endpoints, WHEP players and generic video player SDKs MAY use HTTP HEAD requests to determine if a URL is a WHEP endpoint. WHEP endpoints SHOULD support HTTP HEAD requests as defined in {{Section 9.3.2 of !RFC9110}}.
+
+When a WHEP endpoint receives a HEAD request, it SHOULD respond with a "200 OK" status code and include a `Content-Type` header field with the value `application/sdp`, indicating that the endpoint accepts POST requests with SDP offers in the request body as defined in {{playback-session-setup}}. This allows players to identify WHEP endpoints by examining the `Content-Type` header in the response.
+
+The HEAD response MUST include the same headers that would be returned in response to a GET request, including the `Content-Type` header, but MUST NOT include a message body as per {{Section 9.3.2 of !RFC9110}}.
+
+Example:
+~~~~~
+HEAD /whep/endpoint HTTP/1.1
+Host: whep.example.com
+
+HTTP/1.1 200 OK
+Content-Type: application/sdp
+Content-Length: 0
+~~~~~
+
+When a player recognizes a URL as a WHEP endpoint by receiving `Content-Type: application/sdp` in response to a HEAD request, it SHOULD automatically configure itself to use WHEP protocol handling without requiring additional user configuration.
+
 ## Playback session set up {#playback-session-setup}
 
 In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
