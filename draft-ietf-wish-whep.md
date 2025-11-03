@@ -165,7 +165,7 @@ If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate 
 
 The WHEP endpoint MAY include a "valid-until" parameter in the Content-Type header to indicate how long the counter-offer remains valid. If no "valid-until" parameter is provided, the counter-offer remains valid for 30 seconds from the time the response was sent. The "valid-until" parameter value MUST be an HTTP-date as defined in {{Section 5.6.7 of !RFC9110}}.
 
-When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
+When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed or does not conform to the JSEP rules for an initial answer, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
 
 ### Determining Server Response Type
 
@@ -175,9 +175,11 @@ WHEP players can determine the WHEP endpoint's response type by examining the HT
 
 - **"406 Not Acceptable"**: The WHEP endpoint has rejected the client's offer and responded with an SDP counter-offer. The client MUST send an HTTP PATCH request to the WHEP session URL with an SDP answer to complete the session establishment.
 
+WHEP players MUST interpret a "406 Not Acceptable" response as a server-sent counter-offer only if the response includes a "Content-Type" of "application/sdp" and a syntactically valid SDP offer. Any "406 Not Acceptable" response that does not meet these conditions MUST be handled according to generic HTTP semantics and MUST NOT be interpreted as a counter-offer.
+
 ### Error Conditions
 
-If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response.
+If the HTTP POST to the WHEP endpoint has a "Content-Type" different than "application/sdp", the WHEP endpoint MUST reject the request with "415 Unsupported Media Type" and MUST NOT include an SDP in the response. If the "Content-Type" is "application/sdp" but the body is syntactically invalid or does not conform to the JSEP rules for an initial offer, the WHEP endpoint MUST reject the request with an appropriate 4XX error response. A "406 Not Acceptable" response is reserved for the server-sent counter-offer mechanism and therefore MUST include a "Content-Type" of "application/sdp" and a syntactically valid SDP offer. A "406 Not Acceptable" response that does not meet these conditions MUST be treated as an error and MUST NOT be interpreted as a counter-offer.
 
 ### Media Direction Attributes
 
@@ -564,9 +566,11 @@ Trickle ICE and ICE restart support are RECOMMENDED for both WHEP sessions and c
 
 ### HTTP PATCH request usage {#http-patch-usage}
 
-The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropriate 4XX error response.
+The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing an SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a "Content-Type" different than "application/trickle-ice-sdpfrag" (for ICE operations defined in this section) or "application/sdp" (for the SDP answer to a server counter-offer as defined in {{playback-session-setup}}), the WHEP session MUST reject the request with "415 Unsupported Media Type". If the payload is syntactically invalid or does not conform to the respective format, the WHEP session MUST reject the request with an appropriate 4XX error response.
 
-If the WHEP session supports either Trickle ICE or ICE restarts, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}. 
+Use of "application/sdp" in an HTTP PATCH request is only valid when replying with an SDP answer to a server-sent SDP counter-offer as specified in {{playback-session-setup}} and only until the offer/answer exchange completes. If a WHEP session has already completed the SDP offer/answer exchange, or is otherwise not expecting an SDP via PATCH, the WHEP session MUST reject an "application/sdp" PATCH with "422 Unprocessable Content".
+
+If the WHEP session supports either Trickle ICE or ICE restarts, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}. For avoidance of doubt, "422 Unprocessable Content" MAY also be used when the "Content-Type" is acceptable but the semantics are not supported in the current state (e.g., an SDP received via PATCH outside the server-sent counter-offer flow).
 
 The WHEP player MAY send overlapping HTTP PATCH requests to one WHEP session. Consequently, as those HTTP PATCH requests may be received out-of-order by the WHEP session, if WHEP session supports ICE restarts, it MUST generate a unique strong entity-tag identifying the ICE session as per {{Section 8.8.3 of !RFC9110}}, being OPTIONAL otherwise. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the "201 Created" response to the initial POST request to the WHEP endpoint.
 
