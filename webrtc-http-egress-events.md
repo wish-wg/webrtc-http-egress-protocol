@@ -25,6 +25,13 @@ author:
     name: Cheng Chen
     organization: ByteDance
     email: webrtc@bytedance.com
+
+ -
+    ins: D. Jenkins
+    name: Dan Jenkins
+    organization: Everycast Labs Ltd
+    email: dan@everycastlabs.uk
+    role: editor
     
 normative:
   FETCH:
@@ -104,6 +111,8 @@ event: viewercount
 data: {"viewercount":3}
 ~~~~~
 {: title="Example event"}
+
+Unknown fields in server-sent events MUST be silently ignored by the client. Unknown fields in the JSON object included in the data field of a server-sent event MUST be silently ignored by the client.
 
 The WHEP player MAY destroy the event stream at anytime by sending a HTTP DELETE request to the Url returned on the location header on the created request. The WHEP Resource MUST drop any pending queued event and return a "404 Not found" if any further long pull request is received for the event stream.
 
