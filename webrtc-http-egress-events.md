@@ -25,6 +25,13 @@ author:
     name: Cheng Chen
     organization: ByteDance
     email: webrtc@bytedance.com
+
+ -
+    ins: D. Jenkins
+    name: Dan Jenkins
+    organization: Everycast Labs Ltd
+    email: dan@everycastlabs.uk
+    role: editor
     
 normative:
   FETCH:
@@ -84,6 +91,8 @@ Location: https://whep.example.org/resource/213786HF/sse/event-stream
 ~~~~~
 {: title="HTTP POST request to create a server-to-client event stream"}
 
+When processing the POST request to create a server-to-client event stream, the WHEP Resource MUST validate that each event type in the JSON array is supported. If the "events" attribute was present in the Link header field of the initial response, the WHEP Resource MUST ensure that each requested event type is included in that advertised list. If any requested event type is not supported by the WHEP Resource (either because it was not advertised when the "events" attribute was present, or because the event type is not supported regardless of whether the attribute was present), the WHEP Resource MUST return a "400 Bad Request" response and MUST NOT create the event stream. The WHEP Resource MAY include additional error information in the response body to indicate which event types are not supported.
+
 Once the server-to-client communication channel has been created the WHEP player can perform a long pull using the Url returned on the location header as specified in the WHATWG server sent events protocol.
 
 When an event is generated, the WHEP Resource MUST check for each event stream if the type is on the list provided by the WHEP player when the event stream was created, and if so enqueue it for delivering when an active long pull request is available.
@@ -104,6 +113,8 @@ event: viewercount
 data: {"viewercount":3}
 ~~~~~
 {: title="Example event"}
+
+Unknown fields in server-sent events MUST be silently ignored by the client. Unknown fields in the JSON object included in the data field of a server-sent event MUST be silently ignored by the client.
 
 The WHEP player MAY destroy the event stream at anytime by sending a HTTP DELETE request to the Url returned on the location header on the created request. The WHEP Resource MUST drop any pending queued event and return a "404 Not found" if any further long pull request is received for the event stream.
 

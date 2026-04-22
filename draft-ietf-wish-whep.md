@@ -54,9 +54,9 @@ This document describes a simple HTTP-based protocol that will allow WebRTC-base
 
 # Introduction
 
-The IETF RTCWEB working group standardized JSEP ({{!RFC9429}}), a mechanism used to control the setup, management, and teardown of a multimedia session. It also describes how to negotiate media flows using the Offer/Answer Model with the Session Description Protocol (SDP) {{!RFC3264}} including the formats for data sent over the wire (e.g., media types, codec parameters, and encryption). WebRTC intentionally does not specify a signaling transport protocol at application level.
+The IETF RTCWEB Working Group standardized the JavaScript Session Establishment Protocol (JSEP) {{!RFC9429}}, a mechanism used to control the setup, management, and teardown of a multimedia session. It also describes how to negotiate media flows using the offer/answer model with the Session Description Protocol (SDP) {{!RFC3264}} including the formats for data sent over the wire (e.g., media types, codec parameters, and encryption). WebRTC intentionally does not specify a signaling transport protocol at the application level.
 
-While WebRTC can be integrated with standard signaling protocols like SIP {{?RFC3261}} or XMPP {{?RFC6120}}, they are not designed to be used in broadcasting/streaming services, and there also is no sign of adoption in that industry. RTSP {{?RFC7826}}, which is based on RTP, does not support the SDP offer/answer model {{!RFC3264}} for negotiating the characteristics of the media session.
+While WebRTC can be integrated with standard signaling protocols like SIP {{?RFC3261}} or XMPP {{?RFC6120}}, they are not designed to be used in broadcasting and streaming services, and there also is no sign of adoption in that industry. RTSP {{?RFC7826}}, which is based on RTP, does not support the SDP offer/answer model {{!RFC3264}} for negotiating the characteristics of the media session.
 
 There are many situations in which the lack of a standard protocol for consuming media from streaming service using WebRTC has become a problem:
   
@@ -65,7 +65,7 @@ There are many situations in which the lack of a standard protocol for consuming
 - Integration with Dynamic Adaptive Streaming over HTTP (DASH) for offering live streams via WebRTC while offering a time-shifted version via DASH.
 - Playing WebRTC streams on devices that don't support custom javascript to be run (like TVs).
 
-This document mimics what has been done in the WebRTC HTTP Ingest Protocol (WHIP) {{?I-D.draft-ietf-wish-whip}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
+This document mimics what has been done in the WebRTC HTTP Ingest Protocol (WHIP) {{?RFC9725}} for ingestion and specifies a simple HTTP-based protocol that can be used for consuming media from a streaming service using WebRTC.
 
 # Terminology
 
@@ -81,7 +81,7 @@ The WHEP player always initiates the streaming session by sending an SDP offer t
 
 ## Protocol Operation Flow
 
-The following diagram illustrates the core operation of the WHEP protocol for initiating and terminating a viewing session:
+The following diagram illustrates the core operation of WHEP for initiating and terminating a viewing session:
 
 ~~~~~
  +-------------+    +---------------+ +--------------+ +---------------+
@@ -103,9 +103,9 @@ The following diagram illustrates the core operation of the WHEP protocol for in
     +---------------------------------------------------------->+
     |204 No Content           |              |                  |
     +<----------------------------------------------------------+ 
-    |          ICE REQUEST                   |                  |       
-    +--------------------------------------->+                  |       
-    |          ICE RESPONSE                  |                  |       
+    |          ICE/STUN REQUEST              |                  |
+    +--------------------------------------->+                  |
+    |          ICE/STUN RESPONSE             |                  |
     |<---------------------------------------+                  |       
     |          DTLS SETUP                    |                  |       
     |<======================================>|                  |       
@@ -117,37 +117,37 @@ The following diagram illustrates the core operation of the WHEP protocol for in
     <-----------------------------------------------------------x       
                                                                                
 ~~~~~
-{: title="WHEP session setup and teardown" #whep-protocol-operation}
+{: title="WHEP Session Setup and Teardown" #whep-protocol-operation}
 
 The elements in {{whep-protocol-operation}} are described as follows:
 
-- WHEP player: This represents the WebRTC media player, which functions as a client of the WHEP protocol by receiving and decoding the media from a remote media server.
+- WHEP player: This represents the WebRTC media player, which functions as a client of WHEP by receiving and decoding the media from a remote media server.
 - WHEP endpoint: This denotes the egress server that receives the initial WHEP request.
-- WHEP endpoint URL: Refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
+- WHEP endpoint URL: This refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
 - Media server: This is the WebRTC Media Server that establishes the media session with the WHEP player and delivers the media to it.
 - WHEP session: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
-- WHEP session URL: Refers to the URL of the WHEP resource allocated by the WHEP endpoint for a specific media session. The WHEP player can send requests to the WHEP session using this URL to modify the session, such as ICE operations or termination.
+- WHEP session URL: This refers to the URL of the WHEP resource allocated by the WHEP endpoint for a specific media session. The WHEP player can send requests to the WHEP session using this URL to modify the session, such as ICE operations or termination.
 
-The {{whep-protocol-operation}} illustrates the communication flow between a WHEP player, WHEP endpoint, media server, and WHEP session. This flow outlines the process of setting up and tearing down a playback session using the WHEP protocol, involving negotiation, ICE for Network Address Translation (NAT) traversal, DTLS and Secure Real-time Transport Protocol (SRTP) for security, and RTP/RTCP for media transport:
+{{whep-protocol-operation}} illustrates the communication flow between a WHEP player, WHEP endpoint, media server, and WHEP session. This flow outlines the process of setting up and tearing down a playback session using WHEP, involving negotiation, ICE for Network Address Translation (NAT) traversal, DTLS and Secure Real-time Transport Protocol (SRTP) for security, and RTP/RTCP for media transport:
 
 ## Protocol Operation Steps
 
-- WHEP player: Initiates the communication by sending an HTTP POST with an SDP offer to the WHEP endpoint.
-- WHEP endpoint: Responds with either a "201 Created" message containing an SDP answer (accepting the client's offer) or a "406 Not Acceptable" message containing an SDP counter-offer (rejecting the client's offer).
-- WHEP player: If the WHEP endpoint responded with "406 Not Acceptable", the player sends an HTTP PATCH containing an SDP answer to the WHEP session URL.
-- WHEP session: If applicable, responds with a "204 No Content" message to the PATCH request.
-- WHEP player and media server: Establish ICE and DTLS sessions for NAT traversal and secure communication.
-- RTP/RTCP Flow: Real-time Transport Protocol and Real-time Transport Control Protocol flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
-- WHEP player: Sends an HTTP DELETE to terminate the WHEP session.
-- WHEP session: Responds with a "200 OK" to confirm the session termination.
+- The WHEP player initiates the communication by sending an HTTP POST with an SDP offer to the WHEP endpoint.
+- The WHEP endpoint responds with either a "201 Created" message containing an SDP answer (accepting the client's offer) or a "406 Not Acceptable" message containing an SDP counter-offer (rejecting the client's offer).
+- If the WHEP endpoint responded with "406 Not Acceptable", the WHEP player sends an HTTP PATCH containing an SDP answer to the WHEP session URL.
+- If applicable, the WHEP session responds with a "204 No Content" message to the PATCH request.
+- The WHEP player and media server establish ICE and DTLS sessions for NAT traversal and secure communication.
+- RTP and RTCP flows are established for media transmission from the media server to the WHEP player, secured by the SRTP profile.
+- The WHEP player sends an HTTP DELETE to terminate the WHEP session.
+- The WHEP session responds with a "200 OK" to confirm the session termination.
 
 # Protocol Operation
 
-## HTTP usage {#http-usage}
+## HTTP Usage {#http-usage}
 
-Following {{?BCP56}} guidelines, WHEP players MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem statement json object in the response message body of the failed request as per {{?RFC9457}}.
+Following the guidelines in {{?BCP56}}, WHEP players MUST NOT match error codes returned by the WHEP endpoints and resources to a specific error cause indicated in this specification. WHEP players MUST be able to handle all applicable status codes gracefully falling back to the generic n00 semantics of a given status code on unknown error codes. WHEP endpoints and resources could convey finer-grained error information by a problem dtails json object in the response message body of the failed request as per {{?RFC9457}}.
 
-The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6. of !RFC9110}} handling the requests and providing responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2XX successful response with no content when a GET request is received.
+The WHEP endpoints and sessions are origin servers as defined in {{Section 3.6 of !RFC9110}}; they handle the requests and provide responses for the underlying HTTP resources. Those HTTP resources do not have any representation defined in this specification, so the WHEP endpoints and sessions MUST return a 2xx successful response with no content when a GET request is received.
 
 ## WHEP Endpoint URL Discoverability {#whep-url-discoverability}
 
@@ -171,7 +171,7 @@ Content-Length: 0
 
 When a player recognizes a URL as a WHEP endpoint by receiving `Content-Type: application/sdp` in response to a HEAD request, it SHOULD automatically configure itself to use WHEP protocol handling without requiring additional user configuration.
 
-## Playback session set up {#playback-session-setup}
+## Playback Session Set Up {#playback-session-setup}
 
 In order to set up a streaming session, the WHEP player MUST generate an SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and perform an HTTP POST request as per {{Section 9.3.3 of !RFC9110}} to the configured WHEP endpoint URL.
 
@@ -181,13 +181,13 @@ The HTTP POST request MUST have a content type of "application/sdp" and contain 
 
 If the WHEP endpoint chooses to accept the client's SDP offer, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}} and return a "201 Created" response with a content type of "application/sdp", the SDP answer as the body, and a Location header field pointing to the newly created WHEP session.
 
-### Server Sends Counter-offer
+### Server Sends Counter-Offer
 
 If the WHEP endpoint chooses to reject the client's SDP offer, it MUST generate its own SDP offer according to the JSEP rules for an initial offer as in {{Section 5.2.1 of !RFC9429}} and return a "406 Not Acceptable" response with a content type of "application/sdp", the SDP counter-offer as the body, and a Location header field pointing to the WHEP session resource that will be created upon completion of the offer/answer exchange.
 
 The WHEP endpoint MAY include a "valid-until" parameter in the Content-Type header to indicate how long the counter-offer remains valid. If no "valid-until" parameter is provided, the counter-offer remains valid for 30 seconds from the time the response was sent. The "valid-until" parameter value MUST be an HTTP-date as defined in {{Section 5.6.7 of !RFC9110}}.
 
-When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4XX error response.
+When the WHEP player receives a counter-offer from the WHEP endpoint, it MUST generate an SDP answer according to the JSEP rules for an initial answer as in {{Section 5.3.1 of !RFC9429}}. To send the SDP answer, the WHEP player MUST perform an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL with content type of "application/sdp" and the SDP answer as the body. The WHEP endpoint MUST return a "204 No Content" response. If the SDP is malformed, the WHEP endpoint MUST reject the HTTP PATCH request with an appropriate 4xx error response.
 
 ### Determining Server Response Type
 
@@ -199,11 +199,11 @@ WHEP players can determine the WHEP endpoint's response type by examining the HT
 
 ### Error Conditions
 
-If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4XX error response.
+If the HTTP POST to the WHEP endpoint has a content type different than "application/sdp" or the SDP is malformed, the WHEP endpoint MUST reject the HTTP POST request with an appropriate 4xx error response.
 
 ### Media Direction Attributes
 
-As the WHEP protocol only supports the playback use case with unidirectional media:
+As WHEP only supports the playback use case with unidirectional media:
 
 - When a WHEP player sends an SDP offer, it SHOULD use "recvonly" attribute but MAY use the "sendrecv" attribute instead. The "inactive" and "sendonly" attributes MUST NOT be used.
 - When a WHEP endpoint sends an SDP answer (accepting client offer), it MUST use "sendonly" attribute in the SDP answer.
@@ -225,7 +225,7 @@ WHEP players that restrict their codec offerings may prevent these advanced stre
 
 ### Examples
 
-Following {{sdp-exchange-example-server-accepts}} is an example where the WHEP endpoint accepts the client's offer:
+Following {{sdp-exchange-example-server-accepts}} is an example where the WHEP endpoint accepts the client's offer.
 
 ~~~~~
 POST /whep/endpoint HTTP/1.1
@@ -334,9 +334,9 @@ a=rtpmap:97 rtx/90000
 a=fmtp:97 apt=96
 a=msid:- d46fb922-d52a-4e9c-aa87-444eadc1521b
 ~~~~~
-{: title="Example where WHEP endpoint accepts client offer" #sdp-exchange-example-server-accepts}
+{: title="Example where the WHEP Endpoint accepts client offer" #sdp-exchange-example-server-accepts}
 
-Following {{sdp-exchange-example-server-counter-offer}} is an example where the WHEP endpoint sends a counter-offer:
+Following {{sdp-exchange-example-server-counter-offer}} is an example where the WHEP endpoint sends a counter-offer.
 
 ~~~~~
 POST /channel/teeny-tasty-crayon HTTP/1.1
@@ -556,7 +556,7 @@ a=fmtp:96 apt=100
 
 HTTP/1.1 204 No Content
 ~~~~~
-{: title="Example where WHEP endpoint sends counter-offer" #sdp-exchange-example-server-counter-offer}
+{: title="Example where the WHEP Endpoint sends counter-offer" #sdp-exchange-example-server-counter-offer}
 
 ### Session Management
 
@@ -566,7 +566,7 @@ WHEP players MAY periodically try to connect to the WHEP session with exponentia
 
 Once a session is setup, consent freshness as per {{!RFC7675}} SHALL be used to detect non-graceful disconnection by full ICE implementations and DTLS teardown for session termination by either side.
 
-## Playback session termination {#playback-session-termination}
+## Playback Session Termination {#playback-session-termination}
 
 To explicitly terminate a WHEP session, the WHEP player MUST perform an HTTP DELETE request to the WHEP session URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHEP session will be removed and the resources freed on the media server, terminating the ICE and DTLS sessions.
 
@@ -574,9 +574,9 @@ A media server terminating a session MUST follow the procedures in {{Section 5.2
 
 The WHEP endpoints MUST support OPTIONS requests for Cross-Origin Resource Sharing (CORS) as defined in {{FETCH}}. The "200 OK" response to any OPTIONS request SHOULD include an "Accept-Post" header with a media type value of "application/sdp" as per {{!W3C.REC-ldp-20150226}}.
 
-## ICE support {#ice-support}
+## ICE Support {#ice-support}
 
-ICE {{!RFC8445}} is a protocol addressing the complexities of NAT traversal, commonly encountered in Internet communication. NATs hinder direct communication between devices on different local networks, posing challenges for real-time applications. ICE facilitates seamless connectivity by employing techniques to discover and negotiate efficient communication paths. 
+ICE {{!RFC8445}} is a protocol that addresses the complexities of NAT traversal commonly encountered in Internet communication. NATs hinder direct communication between devices on different local networks, posing challenges for real-time applications. ICE facilitates seamless connectivity by employing techniques to discover and negotiate efficient communication paths.
 
 Trickle ICE {{!RFC8838}} optimizes the connectivity process by incrementally sharing potential communication paths, reducing latency, and facilitating quicker establishment. 
 
@@ -584,21 +584,21 @@ ICE Restarts are crucial for maintaining connectivity in dynamic network conditi
 
 Trickle ICE and ICE restart support are RECOMMENDED for both WHEP sessions and clients.
 
-### HTTP PATCH request usage {#http-patch-usage}
+### HTTP PATCH Request Usage {#http-patch-usage}
 
-The WHEP player MAY perform trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropriate 4XX error response.
+The WHEP player MAY perform Trickle ICE or ICE restarts by sending an HTTP PATCH request as per {{!RFC5789}} to the WHEP session URL, with a body containing a SDP fragment with media type "application/trickle-ice-sdpfrag" as specified in {{!RFC8840}} carrying the relevant ICE information. If the HTTP PATCH to the WHEP session has a content type different than "application/trickle-ice-sdpfrag" or the SDP fragment is malformed, the WHEP session MUST reject the HTTP PATCH with an appropriate 4xx error response.
 
-If the WHEP session supports either Trickle ICE or ICE restarts, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}. 
+If the WHEP session supports either Trickle ICE or ICE restart, but not both, it MUST return a "422 Unprocessable Content" error response for the HTTP PATCH requests that are not supported as per {{Section 15.5.21 of !RFC9110}}.
 
-The WHEP player MAY send overlapping HTTP PATCH requests to one WHEP session. Consequently, as those HTTP PATCH requests may be received out-of-order by the WHEP session, if WHEP session supports ICE restarts, it MUST generate a unique strong entity-tag identifying the ICE session as per {{Section 8.8.3 of !RFC9110}}, being OPTIONAL otherwise. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the "201 Created" response to the initial POST request to the WHEP endpoint.
+The WHEP player MAY send overlapping HTTP PATCH requests to one WHEP session. Consequently, as those HTTP PATCH requests may be received out-of-order by the WHEP session, if WHEP session supports ICE restart, it MUST generate a unique strong entity-tag identifying the ICE session as per {{Section 8.8.3 of !RFC9110}}, being OPTIONAL otherwise. The initial value of the entity-tag identifying the initial ICE session MUST be returned in an ETag header field in the "201 Created" response to the initial POST request to the WHEP endpoint.
 
 WHEP players SHOULD NOT use entity-tag validation when matching a specific ICE session is not required, such as for example when initiating a DELETE request to terminate a session. WHEP sessions MUST ignore any entity-tag value sent by the WHEP player when ICE session matching is not required, as in the HTTP DELETE request.
 
-Missing or outdated ETags in the PATCH requests from WHEP players  will be answered by WHEP sessions as per {{Section 13.1.1 of !RFC9110}} and {{Section 3 of !RFC6585}}, with a "428 Precondition Required" response for a missing entity tag, and a "412 Precondition Failed" response for a non-matching entity tag.
+Missing or outdated ETags in the PATCH requests from WHEP players  will be answered by WHEP sessions as per {{Section 13.1.1 of !RFC9110}} and {{Section 3 of !RFC6585}}, with a "428 Precondition Required" response for a missing entity-tag, and a "412 Precondition Failed" response for a non-matching entity-tag.
 
 ### Trickle ICE {#trickle-ice}
 
-Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, it MAY only contain local candidates as per {{!RFC8445}} or even an empty list of candidates as per {{!RFC8863}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer as soon as possible, containing either locally gathered ICE candidates or an empty list of candidates.
+Depending on the Trickle ICE support on the WHEP player, the initial offer by the WHEP player MAY be sent after the full ICE gathering is complete with the full list of ICE candidates, it MAY only contain local candidates as per {{!RFC8445}} or even an empty list of candidates as per {{!RFC8863}}. For the purpose of reducing setup times, when using Trickle ICE the WHEP player SHOULD send the SDP offer (containing either locally gathered ICE candidates or an empty list of candidates) as soon as possible.
 
 In order to simplify the protocol, the WHEP session cannot signal additional ICE candidates to the WHEP player after the SDP answer has been sent. The WHEP endpoint SHALL gather all the ICE candidates for the media server before responding to the client request and the SDP answer SHALL contain the full list of ICE candidates of the media server.
 
@@ -649,7 +649,7 @@ A WHEP player sending a PATCH request for performing ICE restart MUST contain an
 
 {{!RFC8840}} states that an agent MUST discard any received requests containing "ice-pwd" and "ice-ufrag" attributes that do not match those of the current ICE Negotiation Session, however, any WHEP session receiving an updated "ice-pwd" and "ice-ufrag" attributes MUST consider the request as performing an ICE restart instead and, if supported, SHALL return a "200 OK" with an "application/trickle-ice-sdpfrag" body containing the new ICE username fragment and password and a new set of ICE candidates for the WHEP session. Also, the "200 OK" response for a successful ICE restart MUST contain the new entity-tag corresponding to the new ICE session in an ETag response header field and MAY contain a new set of ICE candidates for the media server. 
 
-As defined in {{Section 4.4.1.1.1 of !RFC8839}} the set of candidates after an ICE restart may include some, none, or all of the previous candidates for that data stream and may include a totally new set of candidates. So after performing a successful ICE restart, both the WHEP player and the WHEP session MUST replace the previous set of remote candidates with the new set exchanged in the HTTP PATCH request and response, discarding any remote ICE candidate not present on the new set. Both the WHEP player and the WHEP session MUST ensure that the HTTP PATCH requests and response bodies include the same 'ice-options,' 'ice-pacing,' and 'ice-lite' attributes as those used in the SDP offer or answer.
+As defined in {{Section 4.4.1.1.1 of !RFC8839}} the set of candidates after an ICE restart may include some, none, or all of the previous candidates for that data stream and may include a totally new set of candidates. So after performing a successful ICE restart, both the WHEP player and the WHEP session MUST replace the previous set of remote candidates with the new set exchanged in the HTTP PATCH request and response, discarding any remote ICE candidate not present on the new set. Both the WHEP player and the WHEP session MUST ensure that the HTTP PATCH request and response bodies include the same "ice-options", "ice-pacing", and "ice-lite" attributes as those used in the SDP offer or answer.
 
 If the ICE restart request cannot be satisfied by the WHEP session, the resource MUST return an appropriate HTTP error code and MUST NOT terminate the session immediately and keep the existing ICE session. The WHEP player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In any case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{Section 5.1 of !RFC7675}}.
 
@@ -688,59 +688,59 @@ a=ice-pwd:0b66f472495ef0ccac7bda653ab6be49ea13114472a5d10a
 a=candidate:1 1 udp 2130706431 198.51.100.1 39132 typ host
 a=end-of-candidates
 ~~~~~
-{: title="Example of an ICE restart request and response" #trickle-restart-example}
+{: title="Example of an ICE Restart Request and Response" #trickle-restart-example}
 
 {{trickle-restart-example}} demonstrates a Trickle ICE restart procedure example. The WHEP player sends a PATCH request containing updated ICE information, including a new ufrag and password, along with newly gathered ICE candidates. In response, the WHEP session provides ICE information for the session after the ICE restart, including the updated ufrag and password, as well as the previous ICE candidate.
 
-## WebRTC constraints
+## WebRTC Constraints
 
 To simplify the implementation of WHEP in both players and media servers, WHEP introduces specific restrictions on WebRTC usage. The following subsections will explain these restrictions in detail:
 
 ### SDP Bundle
 
-Both the WHEP player and the WHEP endpoint SHALL support {{!RFC9143}} and use "max-bundle" policy as defined in {{!RFC9429}}. The WHEP player and the media server MUST support multiplexed media associated with the BUNDLE group as per {{Section 9 of !RFC9143}}. In addition, per {{!RFC9143}} the WHEP player and media server SHALL use RTP/RTCP multiplexing {{!RFC8858}} for all bundled media. In order to reduce the network resources required at the media server, both the WHEP player and WHEP endpoints MUST include the "rtcp-mux-only" attribute in each bundled "m=" sections as per {{Section 3 of !RFC8858}}.
+Both the WHEP player and the WHEP endpoint SHALL support {{!RFC9143}} and use the "max-bundle" policy as defined in {{!RFC9429}}. The WHEP player and the media server MUST support multiplexed media associated with the BUNDLE group as per {{Section 9 of !RFC9143}}. In addition, per {{!RFC9143}} the WHEP player and media server SHALL use RTP/RTCP multiplexing {{!RFC8858}} for all bundled media. In order to reduce the network resources required at the media server, both the WHEP player and WHEP endpoints MUST include the "rtcp-mux-only" attribute in each bundled "m=" sections as per {{Section 3 of !RFC8858}}.
 
 ### Single MediaStream
 
 WHEP only supports a single MediaStream as defined in {{!RFC8830}} and therefore all "m=" sections MUST contain an "msid" attribute with the same value. The MediaStream MUST contain at least one MediaStreamTrack of any media kind and it MUST NOT have two or more than MediaStreamTracks for the same media (audio or video).
 
-### Trickle ICE and ICE restarts
+### Trickle ICE and ICE Restarts
 
 The media server SHOULD support full ICE, unless it is connected to the Internet with an IP address that is accessible by each WHEP player that is authorized to use it, in which case it MAY support only ICE lite. The WHEP player MUST implement and use full ICE.
 
-Trickle ICE and ICE restarts support is OPTIONAL for both the WHEP players and media servers as explained in {{ice-support}}.
+Trickle ICE and ICE restart support is OPTIONAL for both the WHEP players and media servers as explained in {{ice-support}}.
 
-## Load balancing and redirections
+## Load Balancing and Redirections
 
 WHEP endpoints and media servers might not be colocated on the same server, so it is possible to load balance incoming requests to different media servers. 
 
-WHEP players SHALL support HTTP redirections as per {{Section 15.4 of !RFC9110}}. In order to avoid POST requests to be redirected as GET requests, status codes 301 and 302 MUST NOT be used and the preferred method for performing load balancing is via the "307 Temporary Redirect" response status code as described in {{Section 15.4.8 of !RFC9110}}. Redirections are not required to be supported for the PATCH and DELETE requests.
+WHEP players SHALL support HTTP redirections as per {{Section 15.4 of !RFC9110}}. In order to avoid POST requests to be redirected as GET requests, status codes "301 Moved Permanently" and "302 Found" MUST NOT be used and the preferred method for performing load balancing is via the "307 Temporary Redirect" response status code as described in {{Section 15.4.8 of !RFC9110}}. Redirections are not required to be supported for the PATCH and DELETE requests.
 
 In case of high load, the WHEP endpoints MAY return a "503 Service Unavailable" response indicating that the server is currently unable to handle the request due to a temporary overload or scheduled maintenance as described in {{Section 15.6.4 of !RFC9110}}, which will likely be alleviated after some delay. The WHEP endpoint might send a Retry-After header field indicating the minimum time that the user agent ought to wait before making a follow-up request as described in {{Section 10.2.3 of !RFC9110}}.
 
-## STUN/TURN server configuration
+## STUN/TURN Server Configuration
 
 The WHEP Endpoint MAY return STUN/TURN server configuration URLs and credentials usable by the client in the "201 Created" response to the HTTP POST request to the WHEP Endpoint URL.
 
-Each STUN/TURN server will be returned using the "Link" header field {{!RFC8288}} with a "rel" attribute value of "ice-server" as specified in {{I-D.draft-ietf-wish-whip}}
+Each STUN/TURN server will be returned using the Link header field {{!RFC8288}} with a "rel" attribute value of "ice-server" as specified in {{!RFC9725}}
 
 It might be also possible to configure the STUN/TURN server URLs with long-term credentials provided by either the broadcasting service or an external TURN provider on the WHEP player, overriding the values provided by the WHEP Endpoint.
 
-## Authentication and authorization
+## Authentication and Authorization
 
 All WHEP endpoints, sessions and clients MUST support HTTP Authentication as per {{Section 11 of !RFC9110}} and in order to ensure interoperability, bearer token authentication as defined in the next section MUST be supported by all WHEP entities. However this does not preclude the support of additional HTTP authentication schemes as defined in {{Section 11.6 of !RFC9110}}.
 
-### Bearer token authentication
+### Bearer Token Authentication
 
-WHEP endpoints and sessions MAY require the HTTP request to be authenticated using an HTTP Authorization header field with a Bearer token as specified in {{Section 2.1 of !RFC6750}}. WHEP players MUST implement this authentication and authorization mechanism and send the HTTP Authorization header field in all HTTP requests sent to either the WHEP endpoint or session except the preflight OPTIONS requests for CORS.
+WHEP endpoints and sessions MAY require the HTTP request to be authenticated using an HTTP Authorization header field with a Bearer token as specified in {{Section 2.1 of !RFC6750}}. WHEP players MUST implement this authentication and authorization mechanism and send the HTTP Authorization header field in all HTTP requests sent to either the WHEP endpoint or session (except the preflight OPTIONS requests for CORS).
 
-The nature, syntax, and semantics of the bearer token, as well as how to distribute it to the client, is outside the scope of this document. Some examples of the kind of tokens that could be used are, but are not limited to, JWT tokens as per {{!RFC6750}} and {{!RFC8725}} or a shared secret stored on a database. The tokens are typically made available to the end user alongside the WHEP endpoint URL and configured on the WHEP players.
+The nature, syntax, and semantics of the bearer token, as well as how to distribute it to the client, is outside the scope of this document. Some examples of the kind of tokens that could be used are, but are not limited to, JSON Web Tokens (JWTs) as per {{!RFC6750}} and {{!RFC8725}} or a shared secret stored on a database. The tokens are typically made available to the end user alongside the WHEP endpoint URL and configured on the WHEP players.
 
 WHEP endpoints and sessions could perform the authentication and authorization by encoding an authentication token within the URLs for the WHEP endpoints or sessions instead. In case the WHEP player is not configured to use a bearer token, the HTTP Authorization header field MUST NOT be sent in any request.
 
-## Protocol extensions
+## Protocol Extensions
 
-In order to support future extensions to be defined for the WHEP protocol, a common procedure for registering and announcing the new extensions is defined.
+In order to support future extensions to be defined for WHEP, a common procedure for registering and announcing the new extensions is defined.
 
 Protocol extensions supported by the WHEP server MUST be advertised to the WHEP player in the "201 Created" response to the initial HTTP POST request sent to the WHEP Endpoint.
 The WHEP Endpoint MUST return one "Link" header field for each extension that it supports, with the extension "rel" attribute value containing the extension URN and the URL for the HTTP resource that will be available for receiving requests related to that extension.
@@ -774,7 +774,7 @@ This document specifies a new protocol on top of HTTP and WebRTC, thus, security
 - HTTP security: {{Section 11 of !RFC9112}} and {{Section 17 of !RFC9110}}.
 - URI security: {{Section 7 of !RFC3986}}.
 
-On top of that, the WHEP protocol exposes a thin new attack surface specific of the REST API methods used within it:
+On top of that, WHEP exposes a thin new attack surface specific of the REST API methods used within it:
 
 - HTTP POST flooding and resource exhaustion:
   It would be possible for an attacker in possession of authentication credentials valid for watching a WHEP stream to make multiple HTTP POST to the WHEP endpoint.
@@ -796,13 +796,13 @@ In order to prevent this scenario, WHEP endpoints SHOULD implement a rate limit 
 
 This specification adds a registry for URN sub-namespaces for WHEP protocol extensions.
 
-## Registration of WHEP URN Sub-namespace and WHEP registries
+## Registration of WHEP URN Sub-Namespace and WHEP Registries
 
 IANA is asked to add an entry to the "IETF URN Sub-namespace for Registered Protocol Parameter Identifiers" registry and create a sub-namespace for the Registered Parameter Identifier as per {{!RFC3553}}: "urn:ietf:params:whep".
 
 To manage this sub-namespace, IANA is asked to create the "WebRTC-HTTP egress protocol (WHEP) URNs" and "WebRTC-HTTP egress protocol (WHEP) extension URNs".
 
-### WebRTC-HTTP egress protocol (WHEP) URNs registry {#urn-whep-registry}
+### WebRTC-HTTP Egress Protocol (WHEP) URNs Registry {#urn-whep-registry}
 
 The "WebRTC-HTTP egress protocol (WHEP) URNs" registry is used to manage entries within the "urn:ietf:params:whep" namespace. The registry descriptions is as follows:
 
@@ -828,7 +828,7 @@ The registry contains a single initial value:
 
    - IANA registry reference: WebRTC-HTTP egress protocol (WHEP) extension URNs registry.
 
-### WebRTC-HTTP egress protocol (WHEP) extension URNs registry {#urn-whep-ext-registry}
+### WebRTC-HTTP Egress Protocol (WHEP) Extension URNs Registry {#urn-whep-ext-registry}
 
 The "WebRTC-HTTP egress protocol (WHEP) Extension URNs" is used to manage entries within the "urn:ietf:params:whep:ext" namespace. The registry descriptions is as follows:
 
@@ -843,7 +843,7 @@ The "WebRTC-HTTP egress protocol (WHEP) Extension URNs" is used to manage entrie
    - Field names: URI, description, change controller, reference and IANA registry reference
     
   
-## URN Sub-namespace for WHEP {#urn-whep-subspace}
+## URN Sub-Namespace for WHEP {#urn-whep-subspace}
 
 WHEP endpoint utilizes URNs to identify the supported WHEP protocol extensions on the "rel" attribute of the Link header as defined in {{protocol-extensions}}.
 
@@ -921,7 +921,7 @@ Scope:
 
 This section defines the process for registering new WHEP protocol extensions URNs with IANA in the "WebRTC-HTTP egress protocol (WHEP) extension URNs" registry (see {{urn-whep-subspace}}). 
    
-A WHEP Protocol Extension URNs is used as a value in the "rel" attribute of the Link header as defined in {{protocol-extensions}} for the purpose of signaling the WHEP protocol extensions supported by the WHEP endpoints.
+A WHEP Protocol Extension URNs is used as a value in the "rel" attribute of the Link header as defined in {{protocol-extensions}} for the purpose of signaling WHEP extensions supported by the WHEP endpoints.
    
 WHEP Protocol Extensions URNs have an "ext" type as defined in {{urn-whep-subspace}}.
 
