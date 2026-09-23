@@ -48,7 +48,7 @@ normative:
       
 --- abstract
 
-This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services and/or Content Delivery Networks (CDNs) or WebRTC Transmission Network (WTNs).
+This document describes a simple HTTP-based protocol that will allow WebRTC-based viewers to watch content from streaming services, Content Delivery Networks (CDNs), or WebRTC Transmission Networks (WTNs).
 
 --- middle
 
@@ -73,7 +73,7 @@ This document mimics what has been done in the WebRTC HTTP Ingest Protocol (WHIP
 
 # Overview
 
-The WebRTC-HTTP Egress Protocol (WHEP) is designed to facilitate an exchange of Session Description Protocol (SDP) offers and answers using HTTP POST requests. This exchange is a fundamental step in establishing an Interactive Connectivity Establishment (ICE) and Datagram Transport Layer Security (DTLS) session between WHEP player and the streaming service endpoint (Media Server).
+The WebRTC-HTTP Egress Protocol (WHEP) is designed to facilitate an exchange of Session Description Protocol (SDP) offers and answers using HTTP POST requests. This exchange is a fundamental step in establishing an Interactive Connectivity Establishment (ICE) and Datagram Transport Layer Security (DTLS) session between the WHEP player and the media server of the streaming service.
 
 Upon successful establishment of the ICE/DTLS session, unidirectional media data transmission commences from the media server to the WHEP player. It is important to note that SDP renegotiations are not supported in WHEP, meaning that no modifications to the "m=" sections can be made after the initial SDP offer/answer exchange via HTTP POST is completed and only ICE related information can be updated via HTTP PATCH requests as defined in {{ice-support}}.
 
@@ -122,7 +122,7 @@ The following diagram illustrates the core operation of WHEP for initiating and 
 The elements in {{whep-protocol-operation}} are described as follows:
 
 - WHEP player: This represents the WebRTC media player, which functions as a client of WHEP by receiving and decoding the media from a remote media server.
-- WHEP endpoint: This denotes the egress server that receives the initial WHEP request.
+- WHEP endpoint: This denotes the egress server that receives the initial WHEP request. In this document, the term "WHEP endpoint" always refers to this server-side HTTP resource, never to the WHEP player, even though both are endpoints of the resulting WebRTC session. This terminology is consistent with the use of "WHIP endpoint" in {{?RFC9725}}.
 - WHEP endpoint URL: This refers to the URL of the WHEP endpoint responsible for creating the WHEP session.
 - Media server: This is the WebRTC Media Server that establishes the media session with the WHEP player and delivers the media to it.
 - WHEP session: Indicates the allocated HTTP resource by the WHEP endpoint for an ongoing egress session.
@@ -155,9 +155,11 @@ Many video player SDKs and generic video players need a mechanism to automatical
 
 To enable discoverability of WHEP endpoints, WHEP players and generic video player SDKs MAY use HTTP HEAD requests to determine if a URL is a WHEP endpoint. WHEP endpoints SHOULD support HTTP HEAD requests as defined in {{Section 9.3.2 of !RFC9110}}.
 
-When a WHEP endpoint receives a HEAD request, it SHOULD respond with a "200 OK" status code and include a `Content-Type` header field with the value `application/sdp`, indicating that the endpoint accepts POST requests with SDP offers in the request body as defined in {{playback-session-setup}}. This allows players to identify WHEP endpoints by examining the `Content-Type` header in the response.
+When a WHEP endpoint receives a HEAD request, it SHOULD respond with a "200 OK" status code and include a `Content-Type` header field with the value `application/sdp`, indicating that the endpoint accepts POST requests with SDP offers in the request body as defined in {{playback-session-setup}}.
 
-The HEAD response MUST include the same headers that would be returned in response to a GET request, including the `Content-Type` header, but MUST NOT include a message body as per {{Section 9.3.2 of !RFC9110}}.
+As the `application/sdp` media type is not specific to WHEP and could be used by other protocols, the `Content-Type` header field alone is not sufficient to identify a WHEP endpoint. Therefore, a WHEP endpoint responding to a HEAD request with a "200 OK" status code MUST also include a `Link` header field {{!RFC8288}} with a "rel" attribute value of "profile" as defined in {{!RFC6906}} and a target URI of `urn:ietf:params:whep`, the URN sub-namespace registered for WHEP in {{urn-whep-subspace}}.
+
+The HEAD response MUST include the same headers that would be returned in response to a GET request, including the `Content-Type` and `Link` header fields, but MUST NOT include a message body as per {{Section 9.3.2 of !RFC9110}}.
 
 Example:
 ~~~~~
@@ -166,10 +168,11 @@ Host: whep.example.com
 
 HTTP/1.1 200 OK
 Content-Type: application/sdp
+Link: <urn:ietf:params:whep>; rel="profile"
 Content-Length: 0
 ~~~~~
 
-When a player recognizes a URL as a WHEP endpoint by receiving `Content-Type: application/sdp` in response to a HEAD request, it SHOULD automatically configure itself to use WHEP protocol handling without requiring additional user configuration.
+When a player recognizes a URL as a WHEP endpoint by receiving both `Content-Type: application/sdp` and a `Link` header field with a "profile" relation to `urn:ietf:params:whep` in response to a HEAD request, it SHOULD automatically configure itself to use WHEP protocol handling without requiring additional user configuration. Players MUST NOT identify a URL as a WHEP endpoint based on the `Content-Type` header field alone.
 
 ## Playback Session Set Up {#playback-session-setup}
 
@@ -580,15 +583,19 @@ HTTP/1.1 204 No Content
 
 ### Session Management
 
-The WHEP endpoint COULD require a live publishing to be happening in order to allow a WHEP players to start viewing a stream.
-In that case, the WHEP endpoint SHALL return a "409 Conflict" response to the POST request issued by the WHEP player with a "Retry-After" header indicating the number of seconds before sending a new request.
-WHEP players MAY periodically try to connect to the WHEP session with exponential backoff period with an initial value of the "Retry-After" header value in the "409 Conflict" response.
+The WHEP endpoint could require a live publishing event to be happening in order to allow WHEP players to start viewing a stream.
+In that case, the WHEP endpoint SHALL return a "409 Conflict" response to the POST request issued by the WHEP player with a "Retry-After" header field indicating the number of seconds before sending a new request.
+WHEP players MAY periodically retry the POST request to the WHEP endpoint. When doing so, the WHEP player MUST NOT send a new request before the time indicated by the "Retry-After" header field of the most recent "409 Conflict" response has elapsed.
+The WHEP endpoint is responsible for determining the retry interval; if a backoff strategy (e.g., exponential backoff) is desired, the WHEP endpoint can implement it by increasing the "Retry-After" value in subsequent "409 Conflict" responses.
 
 Once a session is setup, consent freshness as per {{!RFC7675}} SHALL be used to detect non-graceful disconnection by full ICE implementations and DTLS teardown for session termination by either side.
+As described in {{playback-session-termination}}, the detection of a non-graceful disconnection is the mechanism by which the WHEP session and media server release the resources associated with the session when no HTTP DELETE request is received.
 
 ## Playback Session Termination {#playback-session-termination}
 
 To explicitly terminate a WHEP session, the WHEP player MUST perform an HTTP DELETE request to the WHEP session URL returned in the Location header field of the initial HTTP POST. Upon receiving the HTTP DELETE request, the WHEP session will be removed and the resources freed on the media server, terminating the ICE and DTLS sessions.
+
+The WHEP session and media server MUST NOT rely on receiving an HTTP DELETE request in order to release the resources associated with a WHEP session or to update any internal state related to it, as the WHEP player could terminate abruptly, lose network connectivity, or otherwise fail to send the HTTP DELETE request, or the request could fail to reach the WHEP session. The WHEP session and media server MUST consider the WHEP session terminated, and release its associated resources, when the ICE consent expires as per {{Section 5.1 of !RFC7675}}, when the DTLS session is closed, or when ICE connectivity is otherwise lost and not re-established.
 
 A media server terminating a session MUST follow the procedures in {{Section 5.2 of !RFC7675}}  for immediate revocation of consent.
 
@@ -673,7 +680,7 @@ A WHEP player sending a PATCH request for performing ICE restart MUST contain an
 
 As defined in {{Section 4.4.1.1.1 of !RFC8839}} the set of candidates after an ICE restart may include some, none, or all of the previous candidates for that data stream and may include a totally new set of candidates. So after performing a successful ICE restart, both the WHEP player and the WHEP session MUST replace the previous set of remote candidates with the new set exchanged in the HTTP PATCH request and response, discarding any remote ICE candidate not present on the new set. Both the WHEP player and the WHEP session MUST ensure that the HTTP PATCH request and response bodies include the same "ice-options", "ice-pacing", and "ice-lite" attributes as those used in the SDP offer or answer.
 
-If the ICE restart request cannot be satisfied by the WHEP session, the resource MUST return an appropriate HTTP error code and MUST NOT terminate the session immediately and keep the existing ICE session. The WHEP player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In any case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{Section 5.1 of !RFC7675}}.
+If the ICE restart request cannot be satisfied by the WHEP session, the WHEP session MUST return an appropriate HTTP error code, MUST NOT terminate the session immediately, and MUST keep the existing ICE session. The WHEP player MAY retry performing a new ICE restart or terminate the session by issuing an HTTP DELETE request instead. In any case, the session MUST be terminated if the ICE consent expires as a consequence of the failed ICE restart as per {{Section 5.1 of !RFC7675}}.
 
 In case of unstable network conditions, the ICE restart HTTP PATCH requests and responses might be received out of order. In order to mitigate this scenario, when the client performs an ICE restart, it MUST discard any previous ICE username and passwords fragments and ignore any further HTTP PATCH response received from a pending HTTP PATCH request. WHEP players MUST apply only the ICE information received in the response to the last sent request. If there is a mismatch between the ICE information at the WHEP player and at the WHEP session (because of an out-of-order request), the STUN requests will contain invalid ICE information and will be dropped by the receiving side. If this situation is detected by the WHEP player, it MUST send a new ICE restart request to the WHEP session.
 
