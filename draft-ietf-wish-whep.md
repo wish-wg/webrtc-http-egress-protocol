@@ -38,12 +38,6 @@ normative:
       org: WHATWG
     title: Fetch - Living Standard
     target: https://fetch.spec.whatwg.org
-
-  SCTE35:
-    author:
-      org: ANSI
-    title: Digital Program Insertion Cueing Message
-    target: https://account.scte.org/standards/library/catalog/scte-35-digital-program-insertion-cueing-message
     
       
 --- abstract
