@@ -799,7 +799,7 @@ Link: <https://whep.example.com/session/id/sse>;
 This document specifies a new protocol on top of HTTP and WebRTC, thus, security protocols and considerations from related specifications apply to the WHEP specification. These include:
 
 - WebRTC security considerations: {{!RFC8826}}. HTTPS SHALL be used in order to preserve the WebRTC security model.
-- Transport Layer Security (TLS): {{!RFC8446}} and {{!RFC9147}}.
+- Transport Layer Security (TLS): {{!RFC9446}} and {{!RFC9147}}.
 - HTTP security: {{Section 11 of !RFC9112}} and {{Section 17 of !RFC9110}}.
 - URI security: {{Section 7 of !RFC3986}}.
 
