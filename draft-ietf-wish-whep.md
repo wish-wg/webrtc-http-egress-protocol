@@ -1,5 +1,5 @@
 ---
-docname: draft-ietf-wish-whep-04
+docname: draft-ietf-wish-whep-05
 title: WebRTC-HTTP Egress Protocol (WHEP)
 abbrev: whep
 category: std
@@ -23,8 +23,7 @@ author:
  -
     ins: C. Chen
     name: Cheng Chen
-    organization: ByteDance
-    email: webrtc@bytedance.com
+    email: parallelc@foxmail.com
  -
     ins: D. Jenkins
     name: Dan Jenkins
@@ -1011,3 +1010,5 @@ A WHEP Protocol Extension URNs is defined by completing the following template:
 {:numbered="false"}
 
 The authors wish to thank Lorenzo Miniero, Juliusz Chroboczek, Adam Roach, Nils Ohlmeier, Christer Holmberg, Cameron Elliott, Gustavo Garcia, Sandro Gauci, and everyone else in the WebRTC community that have provided comments, feedback, text and improvement proposals on the document and contributed early implementations of the spec.
+
+Cheng Chen's contribution was supported by ByteDance during his employment there.
